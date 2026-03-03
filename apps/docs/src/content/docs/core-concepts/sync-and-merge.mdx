@@ -9,7 +9,7 @@ Sync and merge are two related but distinct systems in Stoneforge. **Data sync**
 
 ## Data sync: JSONL as source of truth
 
-Stoneforge's [dual storage model](/architecture/storage/) uses SQLite for fast runtime queries and JSONL files for durable, git-friendly persistence. Sync is the bridge between them:
+Stoneforge's [dual storage model](/core-concepts/storage/) uses SQLite for fast runtime queries and JSONL files for durable, git-friendly persistence. Sync is the bridge between them:
 
 - **Export** (SQLite → JSONL): Serialize element state from the database to `.stoneforge/sync/` files
 - **Import** (JSONL → SQLite): Read JSONL files and merge them into the SQLite database
@@ -259,6 +259,102 @@ The MergeStewardService is configurable:
 | `autoCleanup` | `true` | Clean up task worktree after merge |
 | `deleteBranchAfterMerge` | `true` | Delete source branch (local + remote) after merge |
 
+## External sync: connecting to external tools
+
+While the internal JSONL sync keeps data consistent across git branches, **external sync** connects Stoneforge to the tools your team already uses — syncing tasks with GitHub Issues or Linear, and documents with Notion or a local folder.
+
+### Providers
+
+External sync has a strict separation: each provider handles either **tasks** or **documents**, never both.
+
+| Provider | Type | External system | Auth |
+| --- | --- | --- | --- |
+| **GitHub** | Task | GitHub Issues | Personal access token (`ghp_...`) |
+| **Linear** | Task | Linear Issues | API key (`lin_api_...`) |
+| **Notion** | Document | Notion Pages | Integration token (`ntn_...`) |
+| **Folder** | Document | Local filesystem (Markdown) | None |
+
+### How it works
+
+Each synced element stores an `_externalSync` metadata entry that tracks the provider, external ID, URL, and content hashes. The sync engine uses content hashing to detect changes on either side:
+
+```
+┌─────────────────────┐          ┌─────────────────────┐
+│     Stoneforge      │          │   External System   │
+│                     │  push →  │                     │
+│   Tasks             │          │   GitHub Issues     │
+│   Documents         │  ← pull  │   Linear Issues     │
+│                     │          │   Notion Pages      │
+│                     │  sync ⇄  │   Local Folder      │
+└─────────────────────┘          └─────────────────────┘
+```
+
+- **Push** — Exports local changes to the external system. Compares the current content hash against `lastPushedHash` to skip unchanged elements.
+- **Pull** — Imports changes from the external system. Uses a per-provider cursor to fetch only items modified since the last pull.
+- **Sync** — Bidirectional: push first, then pull. Detects conflicts when both sides changed.
+
+### Task field mapping
+
+Task sync maps Stoneforge fields to external issue fields:
+
+| Stoneforge field | GitHub | Linear |
+| --- | --- | --- |
+| `status` | open/closed state + `sf:status:*` labels | Workflow state type (started, completed, etc.) |
+| `priority` | `sf:priority:*` labels | Native priority (0–4 scale mapped to 1–5) |
+| `taskType` | `sf:type:*` labels | `sf:type:*` labels |
+| `tags` | User labels (unprefixed) | User labels (unprefixed) |
+| Description document | Issue body text | Issue description |
+
+<Aside>
+  Assignees are intentionally **not** synced. Stoneforge assignees are ephemeral agents, not human team members.
+</Aside>
+
+### Document field mapping
+
+Document sync maps Stoneforge documents to external pages:
+
+| Stoneforge field | Notion | Folder |
+| --- | --- | --- |
+| `title` | Page title | Filename (slugified) |
+| `content` | Page blocks (Markdown ↔ Notion blocks) | Markdown file content |
+| `category` | Category property | YAML frontmatter |
+| `tags` | Multi-select property | YAML frontmatter |
+| `libraryPath` | Library select property | Subdirectory hierarchy |
+
+System documents (task descriptions, message content) and untitled documents are excluded from sync.
+
+### Conflict resolution
+
+When both sides change the same element between sync cycles, a conflict occurs. Four resolution strategies are available:
+
+| Strategy | Behavior |
+| --- | --- |
+| `last_write_wins` (default) | Most recent `updatedAt` timestamp wins |
+| `local_wins` | Stoneforge version always wins |
+| `remote_wins` | External version always wins |
+| `manual` | Element tagged `sync-conflict` for human resolution |
+
+The conflict resolver also supports **field-level merge** — when different fields changed on each side, both changes can be applied automatically. Only same-field changes are true conflicts.
+
+### Linking elements
+
+Before an element can sync, it must be **linked** to an external item:
+
+```bash
+# Link a single task to a GitHub issue
+sf external-sync link el-3a8f https://github.com/org/repo/issues/42
+
+# Bulk-link all unlinked tasks to GitHub
+sf external-sync link-all -p github --project org/repo
+
+# Auto-link new tasks as they're created
+sf external-sync config set-auto-link github
+```
+
+### Background daemon
+
+When external sync is enabled and at least one provider is configured, the orchestrator runs a background polling daemon. It calls `sync()` (push then pull) at a configurable interval (default: 60 seconds).
+
 ## Recovery
 
 If the SQLite database corrupts or gets out of sync with the JSONL files:
@@ -282,17 +378,17 @@ The JSONL files are the source of truth. The database can always be regenerated 
 <LinkCard
   title="Storage"
   description="Deep dive into the dual storage model, SQLite schema, and JSONL format"
-  href="/architecture/storage/"
+  href="/core-concepts/storage/"
 />
 <LinkCard
   title="Worktree Isolation"
   description="How agents get isolated worktrees and how merge worktrees protect main"
-  href="/architecture/worktree-isolation/"
+  href="/core-concepts/worktree-isolation/"
 />
 <LinkCard
   title="Event Sourcing"
   description="How every state change is recorded as an immutable event"
-  href="/architecture/event-sourcing/"
+  href="/core-concepts/event-sourcing/"
 />
 <LinkCard
   title="Auto-Merge"

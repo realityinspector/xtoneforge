@@ -1,5 +1,5 @@
 ---
-title: Core Concepts
+title: Overview
 description: Understand the fundamental building blocks of Stoneforge — elements, tasks, agents, worktrees, and the orchestration loop.
 ---
 
@@ -162,27 +162,42 @@ Stoneforge uses a dual storage model — SQLite for fast queries, JSONL files fo
   merges cleanly across branches.
 </Aside>
 
+## External sync
+
+Stoneforge can sync elements bidirectionally with the tools your team already uses. **Tasks** sync with issue trackers, and **documents** sync with knowledge bases:
+
+| Provider | Element type | External system |
+| --- | --- | --- |
+| GitHub | Tasks | GitHub Issues |
+| Linear | Tasks | Linear Issues |
+| Notion | Documents | Notion Pages |
+| Folder | Documents | Local Markdown files |
+
+Each synced element tracks its link to the external system (provider, external ID, content hashes). The sync engine detects changes on either side using content hashing and supports configurable conflict resolution when both sides change simultaneously.
+
+External sync runs as a background daemon alongside the orchestrator, or on-demand via `sf external-sync push`, `pull`, and `sync` commands.
+
 ## Next steps
 
 <LinkCard
   title="Event Sourcing"
   description="How Stoneforge records and replays state changes"
-  href="/architecture/event-sourcing/"
+  href="/core-concepts/event-sourcing/"
 />
 <LinkCard
   title="Storage"
   description="Deep dive into the dual storage model"
-  href="/architecture/storage/"
+  href="/core-concepts/storage/"
 />
 <LinkCard
   title="Sync & Merge"
   description="How data synchronizes across branches"
-  href="/architecture/sync-and-merge/"
+  href="/core-concepts/sync-and-merge/"
 />
 <LinkCard
   title="Orchestration Loop"
   description="The engine that drives multi-agent execution"
-  href="/architecture/orchestration-loop/"
+  href="/core-concepts/orchestration-loop/"
 />
 <LinkCard
   title="Agent Roles"

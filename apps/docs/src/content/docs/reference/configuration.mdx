@@ -84,6 +84,39 @@ plugins:
   { name: 'plugins.packages', type: 'string[]', default: '[]', description: 'NPM package names that export CLI plugins. First-party packages like @stoneforge/smithy are auto-discovered.' },
 ]} />
 
+## External sync settings
+
+External sync is managed via runtime settings and CLI commands rather than `config.yaml`. Use `sf external-sync config` to view and modify.
+
+<ParamTable title="External Sync" params={[
+  { name: 'externalSync.enabled', type: 'boolean', default: 'false', description: 'Enable external sync with third-party tools.' },
+  { name: 'externalSync.pollInterval', type: 'number', default: '60000', description: 'Background sync polling interval in ms (clamped to 10s–30min).' },
+  { name: 'externalSync.conflictStrategy', type: 'string', default: 'last_write_wins', description: 'Conflict resolution strategy: last_write_wins, local_wins, remote_wins, or manual.' },
+  { name: 'externalSync.defaultDirection', type: 'string', default: 'bidirectional', description: 'Default sync direction: push, pull, or bidirectional.' },
+  { name: 'externalSync.autoLink', type: 'boolean', default: 'false', description: 'Auto-create external issues when new tasks are created.' },
+  { name: 'externalSync.autoLinkProvider', type: 'string', description: 'Provider for task auto-linking (e.g., github, linear).' },
+  { name: 'externalSync.autoLinkDocumentProvider', type: 'string', description: 'Provider for document auto-linking (e.g., notion, folder).' },
+]} />
+
+### Provider tokens and projects
+
+Per-provider authentication and project settings are stored as runtime settings:
+
+```bash
+# Set provider credentials
+sf external-sync config set-token github ghp_xxxxxxxxxxxx
+sf external-sync config set-token linear lin_api_xxxxxxxxxxxx
+sf external-sync config set-token notion ntn_xxxxxxxxxxxx
+
+# Set default project (repo, team, database, or folder path)
+sf external-sync config set-project github org/repo
+sf external-sync config set-project folder ./docs
+```
+
+<Aside type="caution">
+  Provider tokens are stored in the SQLite database, not in `config.yaml`. They are not committed to git and do not travel across branches.
+</Aside>
+
 ## Runtime settings
 
 In addition to `config.yaml`, Stoneforge has **runtime settings** managed by the SettingsService. These are stored in SQLite and managed via the dashboard or API — they don't appear in `config.yaml`.
@@ -94,6 +127,8 @@ In addition to `config.yaml`, Stoneforge has **runtime settings** managed by the
 | Default models | Per-provider default model ID | Settings > Workspace > Agent Defaults |
 | Executable paths | Custom paths to provider CLI binaries | Settings > Workspace > Agent Defaults |
 | Fallback chain | Ordered list of provider executables for rate limit fallback | Settings > Workspace > Agent Defaults |
+| External sync providers | API tokens and default projects for sync providers | `sf external-sync config` |
+| Sync cursors | Per-provider cursors tracking last sync position | Managed automatically |
 
 <Aside>
   Runtime settings are workspace-scoped and take effect immediately. They complement `config.yaml` (which handles project-level settings like sync and identity) by providing a separate layer for agent orchestration preferences.
