@@ -53,13 +53,16 @@ import type {
   Task,
   EventType,
   EventFilter,
+  Dependency,
+  DependencyType,
 } from '@stoneforge/core';
 import { createTimestamp } from '@stoneforge/core';
 import { createHash } from 'crypto';
 import { computeContentHashSync } from '../sync/hash.js';
 import type { ProviderRegistry } from './provider-registry.js';
 import { taskToExternalTask, externalTaskToTaskUpdates, getFieldMapConfigForProvider } from './adapters/task-sync-adapter.js';
-import { documentToExternalDocumentInput, externalDocumentToDocumentUpdates, computeExternalDocumentHash, isSyncableDocument } from './adapters/document-sync-adapter.js';
+import { documentToExternalDocumentInput, externalDocumentToDocumentUpdates, computeExternalDocumentHash, isSyncableDocument, resolveDocumentLibraryPaths } from './adapters/document-sync-adapter.js';
+import type { LibraryPathAPI } from './adapters/document-sync-adapter.js';
 
 // ============================================================================
 // Types
@@ -100,6 +103,8 @@ export interface SyncEngineAPI {
   create<T extends Element>(input: Record<string, unknown>): Promise<T>;
   /** List events matching a filter */
   listEvents(filter?: EventFilter): Promise<Array<{ elementId: ElementId; eventType: string; createdAt: Timestamp }>>;
+  /** Get all dependencies for an element, optionally filtered by type */
+  getDependencies(id: ElementId, types?: DependencyType[]): Promise<Dependency[]>;
 }
 
 /**
@@ -269,11 +274,21 @@ export class SyncEngine {
     // Step 1: Find elements to push
     const elements = await this.findLinkedElements(options);
 
+    // Step 1.5: Batch-resolve library paths for all document elements
+    // This avoids N+1 queries by resolving all paths upfront
+    const documentElements = elements.filter(el => {
+      const syncState = getExternalSyncState(el.metadata);
+      return syncState?.adapterType === 'document';
+    });
+    const libraryPaths = documentElements.length > 0
+      ? await resolveDocumentLibraryPaths(this.api, documentElements.map(el => el.id))
+      : new Map<string, string>();
+
     // Step 2: Process elements concurrently in batches
     for (let i = 0; i < elements.length; i += PUSH_CONCURRENCY) {
       const batch = elements.slice(i, i + PUSH_CONCURRENCY);
       const results = await Promise.allSettled(
-        batch.map(element => this.pushSingleElement(element, options, now))
+        batch.map(element => this.pushSingleElement(element, options, now, libraryPaths))
       );
 
       for (let j = 0; j < results.length; j++) {
@@ -324,7 +339,8 @@ export class SyncEngine {
   private async pushSingleElement(
     element: Element,
     options: SyncOptions,
-    now: Timestamp
+    now: Timestamp,
+    libraryPaths: Map<string, string> = new Map()
   ): Promise<'pushed' | 'skipped'> {
     const syncState = getExternalSyncState(element.metadata);
     if (!syncState) {
@@ -347,7 +363,8 @@ export class SyncEngine {
 
     // Route by adapter type: tasks → pushElement(), documents → pushDocument()
     if (syncState.adapterType === 'document') {
-      return this.pushDocument(element, syncState, options, now);
+      const libraryPath = libraryPaths.get(element.id);
+      return this.pushDocument(element, syncState, options, now, libraryPath);
     } else {
       return this.pushElement(element, syncState, options, now);
     }
@@ -429,7 +446,8 @@ export class SyncEngine {
     element: Element,
     syncState: ExternalSyncState,
     options: SyncOptions,
-    now: Timestamp
+    now: Timestamp,
+    libraryPath?: string
   ): Promise<'pushed' | 'skipped'> {
     // Check for actual content change via hash (skip when force is true)
     const currentHash = computeContentHashSync(element).hash;
@@ -462,7 +480,7 @@ export class SyncEngine {
     }
 
     // Build external document input using the shared field mapping utilities
-    const docInput = documentToExternalDocumentInput(element as unknown as Document);
+    const docInput = documentToExternalDocumentInput(element as unknown as Document, libraryPath);
 
     // Push to external service
     await adapter.updatePage(syncState.project, syncState.externalId, docInput);

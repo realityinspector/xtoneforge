@@ -20,7 +20,7 @@ import type {
   ExternalSyncState,
 } from '@stoneforge/core';
 import { setExternalSyncState } from '@stoneforge/core';
-import type { Timestamp, ElementId, EventFilter } from '@stoneforge/core';
+import type { Timestamp, ElementId, EventFilter, Dependency, DependencyType } from '@stoneforge/core';
 import { ProviderRegistry } from './provider-registry.js';
 import {
   SyncEngine,
@@ -123,6 +123,9 @@ function createMockApi(options: {
     },
     async listEvents(filter?: EventFilter): Promise<Array<{ elementId: ElementId; eventType: string; createdAt: Timestamp }>> {
       return options.events ?? [];
+    },
+    async getDependencies(_id: ElementId, _types?: DependencyType[]): Promise<Dependency[]> {
+      return [];
     },
   };
 }

@@ -31,6 +31,8 @@ import type {
   EventFilter,
   Document,
   DocumentCategory,
+  Dependency,
+  DependencyType,
 } from '@stoneforge/core';
 import {
   getExternalSyncState,
@@ -139,6 +141,9 @@ function createInMemoryApi(): SyncEngineAPI & {
 
     async listEvents(_filter?: EventFilter): Promise<Array<{ elementId: ElementId; eventType: string; createdAt: Timestamp }>> {
       return events;
+    },
+    async getDependencies(_id: ElementId, _types?: DependencyType[]): Promise<Dependency[]> {
+      return [];
     },
   };
 }
