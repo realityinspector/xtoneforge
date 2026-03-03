@@ -158,6 +158,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for full architecture details.
 | CLI completion | `cli/completion.ts` | - |
 | CLI commands | `cli/commands/*.ts` | `cli/commands/*.bun.test.ts` |
 | CLI embeddings commands | `cli/commands/embeddings.ts` | - |
+| CLI progress bar utils | `cli/utils/progress.ts` | `cli/utils/progress.bun.test.ts` |
 | CLI database helpers | `cli/db.ts` | - |
 | CLI command suggest | `cli/suggest.ts` | - |
 | CLI types | `cli/types.ts` | - |
@@ -178,8 +179,8 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for full architecture details.
 | Linear task adapter | `external-sync/providers/linear/linear-task-adapter.ts` | `external-sync/providers/linear/linear-task-adapter.bun.test.ts` |
 | Linear field map | `external-sync/providers/linear/linear-field-map.ts` | - |
 | Linear types | `external-sync/providers/linear/linear-types.ts` | - |
-| Auto-link service | `external-sync/auto-link.ts` | - |
-| Document sync adapter | `external-sync/adapters/document-sync-adapter.ts` | - |
+| Auto-link service | `external-sync/auto-link.ts` | `external-sync/auto-link.bun.test.ts` |
+| Document sync adapter | `external-sync/adapters/document-sync-adapter.ts` | `external-sync/adapters/document-sync-adapter.bun.test.ts` |
 | Folder provider | `external-sync/providers/folder/folder-provider.ts` | - |
 | Folder document adapter | `external-sync/providers/folder/folder-document-adapter.ts` | `external-sync/providers/folder/folder-document-adapter.bun.test.ts` |
 | Folder filesystem utils | `external-sync/providers/folder/folder-fs.ts` | `external-sync/providers/folder/folder-fs.bun.test.ts` |
@@ -188,8 +189,8 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for full architecture details.
 | Notion document adapter | `external-sync/providers/notion/notion-document-adapter.ts` | `external-sync/providers/notion/notion-document-adapter.bun.test.ts` |
 | Notion provider | `external-sync/providers/notion/notion-provider.ts` | - |
 | Notion types | `external-sync/providers/notion/notion-types.ts` | - |
-| CLI external-sync commands | `cli/commands/external-sync.ts` | - |
-| CLI auto-link helper | `cli/commands/auto-link-helper.ts` | - |
+| CLI external-sync commands | `cli/commands/external-sync.ts` | `cli/commands/external-sync-link-all.bun.test.ts`, `cli/commands/external-sync-unlink-all.bun.test.ts` |
+| CLI auto-link helper | `cli/commands/auto-link-helper.ts` | `cli/commands/auto-link-helper.bun.test.ts` |
 
 ## File Map (@stoneforge/ui)
 
