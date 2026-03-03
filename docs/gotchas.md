@@ -166,6 +166,7 @@ Common pitfalls and their solutions, organized by severity and category.
 - **Headless mode** uses `child_process.spawn()` with stream-json I/O
 - **Interactive mode** uses PTY (node-pty) for terminal emulation
 - `STONEFORGE_ROOT` env var is set for worktree root-finding
+- `CLAUDE_CODE_DISABLE_1M_CONTEXT=1` is set on all spawned sessions (headless and interactive) to work around a Claude Code bug that prevents operation without it
 - Built-in prompts are loaded from `packages/smithy/src/prompts/`
 - Project-level prompt overrides go in `.stoneforge/prompts/`
 - **Handoff notes are in the description Document**, not in metadata fields. `handoffTask()` appends `[AGENT HANDOFF NOTE]: {message}` to the task's `descriptionRef` Document. The `handoffHistory` array in metadata tracks handoff audit history.
