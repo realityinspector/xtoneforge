@@ -125,7 +125,7 @@ const TaskTypeValue = {
 import { createTask, updateTaskStatus, isTask } from '@stoneforge/core';
 
 createTask(input);                        // Factory
-updateTaskStatus(task, newStatus);        // Validated transition
+updateTaskStatus(task, { status, closeReason? }); // Validated transition
 isTask(element);                          // Type guard
 ```
 

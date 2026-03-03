@@ -79,7 +79,7 @@ Given a sequence of events, you can reconstruct state at any point in time:
 import { reconstructStateAtTime } from '@stoneforge/core';
 
 // Get all events for an element
-const events = await api.events({ elementId: taskId });
+const events = await api.getEvents(taskId);
 
 // Reconstruct state as of yesterday
 const yesterday = new Date(Date.now() - 86400000).toISOString();
@@ -119,8 +119,7 @@ function applyEventToState(current, event) {
 Every change is attributed and timestamped:
 
 ```typescript
-const events = await api.events({
-  elementId: taskId,
+const events = await api.getEvents(taskId, {
   eventType: ['updated', 'closed'],
 });
 
@@ -137,7 +136,7 @@ When something goes wrong, you can trace exactly what happened:
 
 ```typescript
 // Find all actions by a specific agent
-const agentEvents = await api.events({
+const agentEvents = await api.listEvents({
   actor: 'buggy-agent',
   after: '2024-01-15T00:00:00.000Z',
 });
@@ -156,7 +155,7 @@ Events enable compliance documentation without additional logging:
 
 ```typescript
 // Weekly activity report
-const weeklyEvents = await api.events({
+const weeklyEvents = await api.listEvents({
   after: weekStart,
   before: weekEnd,
   eventType: ['created', 'closed'],
@@ -209,7 +208,7 @@ For debugging or visualization, generate complete timelines:
 ```typescript
 import { generateTimelineSnapshots } from '@stoneforge/core';
 
-const events = await api.events({ elementId: taskId });
+const events = await api.getEvents(taskId);
 const snapshots = generateTimelineSnapshots(events);
 
 snapshots.forEach(({ event, state, summary }) => {
