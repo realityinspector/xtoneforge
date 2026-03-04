@@ -32,24 +32,19 @@
             <span class="text-[10px] text-[var(--site-text-ghost)] font-mono">localhost:3457</span>
           </div>
         </div>
-        <!-- Video placeholder -->
-        <div class="relative aspect-video flex items-center justify-center bg-[var(--site-bg-primary)]">
-          <div class="absolute inset-0 dot-grid opacity-20"></div>
-          <!-- Play button with ring animation -->
-          <div class="relative">
-            <div class="absolute inset-0 rounded-full animate-ping opacity-20 bg-[var(--site-accent)]" style="animation-duration: 2s;"></div>
-            <button class="relative w-20 h-20 rounded-full bg-[var(--site-accent)]/90 flex items-center justify-center hover:bg-[var(--site-accent)] transition-all duration-300 hover:scale-105 hover:shadow-[0_0_40px_rgba(96,165,250,0.3)]" aria-label="Play demo video">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="var(--site-bg-primary)" stroke="none">
-                <polygon points="9 5 20 12 9 19 9 5"/>
-              </svg>
-            </button>
-          </div>
-        </div>
+        <video
+          class="w-full aspect-video bg-[var(--site-bg-primary)]"
+          src="https://media.stoneforge.ai/long-demo.mp4"
+          controls
+          preload="none"
+          playsinline
+        >
+        </video>
       </div>
     </div>
 
     <p class="text-center text-xs text-[var(--site-text-ghost)] mt-8 font-mono" data-reveal>
-      Demo video coming soon
+      Full orchestration demo — plan, dispatch, execute, merge
     </p>
   </div>
 </section>

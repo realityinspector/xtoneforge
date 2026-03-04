@@ -2,9 +2,10 @@
 interface Props {
   prompt: string;
   alt: string;
+  caption?: string;
 }
 
-const { prompt, alt } = Astro.props;
+const { prompt, alt, caption } = Astro.props;
 ---
 
 <figure class="image-placeholder">
@@ -20,6 +21,7 @@ const { prompt, alt } = Astro.props;
       <p class="image-placeholder-prompt">{prompt}</p>
     </details>
   </div>
+  {caption && <figcaption class="image-placeholder-caption">{caption}</figcaption>}
 </figure>
 
 <style>
@@ -68,5 +70,14 @@ const { prompt, alt } = Astro.props;
     line-height: 1.6;
     margin: 0.5rem 0 0;
     opacity: 0.6;
+  }
+
+  .image-placeholder-caption {
+    font-size: 0.875rem;
+    color: var(--site-text-tertiary, #888);
+    text-align: center;
+    margin-top: 0.75rem;
+    line-height: 1.5;
+    font-style: italic;
   }
 </style>

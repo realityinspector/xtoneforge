@@ -16,7 +16,8 @@ interface Props {
 const { title, description, date, updatedDate, author, tags, slug, body } = Astro.props;
 ---
 
-<a href={`/blog/${slug}/`} class="block glow-card p-6 group no-underline">
+<div class="glow-card p-6 group relative">
+  <a href={`/blog/${slug}/`} class="absolute inset-0 z-0" aria-label={title}></a>
   <h3 class="text-lg font-semibold tracking-tight mb-2 text-[var(--site-text-primary)] group-hover:text-[var(--site-accent-bright)] transition-colors duration-300" style="font-family: var(--font-headline);">
     {title}
   </h3>
@@ -25,8 +26,8 @@ const { title, description, date, updatedDate, author, tags, slug, body } = Astr
   </p>
   <PostMeta date={date} updatedDate={updatedDate} author={author} body={body} />
   {tags.length > 0 && (
-    <div class="mt-3">
+    <div class="mt-3 relative z-10">
       <TagList tags={tags} />
     </div>
   )}
-</a>
+</div>
