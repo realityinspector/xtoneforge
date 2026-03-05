@@ -75,6 +75,7 @@ export default defineConfig({
                 { label: 'Agent Pools', slug: 'guides/agent-pools' },
                 { label: 'Workflows & Playbooks', slug: 'guides/workflows-and-playbooks' },
                 { label: 'Multi-Provider Support', slug: 'guides/multi-provider' },
+                { label: 'Demo Mode', slug: 'guides/demo-mode' },
                 { label: 'Custom Prompts', slug: 'guides/custom-prompts' },
               ],
             },
