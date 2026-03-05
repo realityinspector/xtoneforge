@@ -257,27 +257,51 @@ class OpenCodeServerManager {
   private async startServer(config?: ServerManagerConfig): Promise<OpencodeClient> {
     const createOpencode = await this.loadSDK();
 
-    const env: Record<string, string> = {
-      ...(process.env as Record<string, string>),
+    // The SDK passes options.config as OPENCODE_CONFIG_CONTENT to the spawned process.
+    // Use config.wd to set the working directory (the SDK ignores top-level cwd).
+    const opencodeConfig: Record<string, unknown> = {};
+    if (config?.cwd) {
+      opencodeConfig.wd = config.cwd;
+    }
+
+    // The SDK copies process.env at spawn time — set our env vars temporarily
+    // so they're inherited by the spawned opencode process.
+    const envOverrides: Record<string, string> = {
       OPENCODE_PERMISSION: JSON.stringify({ '*': 'allow' }),
       OPENCODE_CLIENT: 'stoneforge',
     };
     if (config?.stoneforgeRoot) {
-      env.STONEFORGE_ROOT = config.stoneforgeRoot;
+      envOverrides.STONEFORGE_ROOT = config.stoneforgeRoot;
     }
 
-    const result = await createOpencode({
-      port: config?.port ?? 0,
-      cwd: config?.cwd,
-      env,
-    });
+    const savedEnv: Record<string, string | undefined> = {};
+    for (const [key, value] of Object.entries(envOverrides)) {
+      savedEnv[key] = process.env[key];
+      process.env[key] = value;
+    }
 
-    // The SDK returns richer types; we extract what we need
-    this.client = result.client as unknown as OpencodeClient;
-    this.server = result.server as unknown as OpencodeServer;
-    this.startPromise = null;
+    try {
+      const result = await createOpencode({
+        port: config?.port ?? 0,
+        config: opencodeConfig,
+      });
 
-    return this.client;
+      // The SDK returns richer types; we extract what we need
+      this.client = result.client as unknown as OpencodeClient;
+      this.server = result.server as unknown as OpencodeServer;
+      this.startPromise = null;
+
+      return this.client;
+    } finally {
+      // Restore original env
+      for (const [key, value] of Object.entries(savedEnv)) {
+        if (value === undefined) {
+          delete process.env[key];
+        } else {
+          process.env[key] = value;
+        }
+      }
+    }
   }
 
   private async loadSDK(): Promise<(...args: unknown[]) => Promise<{ client: unknown; server: unknown }>> {
