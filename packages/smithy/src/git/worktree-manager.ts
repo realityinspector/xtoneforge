@@ -445,6 +445,19 @@ export class WorktreeManagerImpl implements WorktreeManager {
       }
     }
 
+    // Final safety net: ensure directory is completely gone before creation.
+    // git worktree remove --force may leave behind untracked artifacts (e.g., node_modules).
+    if (fs.existsSync(fullPath)) {
+      try {
+        fs.rmSync(fullPath, { recursive: true, force: true });
+      } catch {
+        throw new WorktreeError(
+          'Worktree already exists at ' + relativePath + ' and could not be removed',
+          'WORKTREE_EXISTS'
+        );
+      }
+    }
+
     // Track state
     this.worktreeStates.set(relativePath, 'creating');
 
