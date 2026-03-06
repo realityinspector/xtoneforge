@@ -18,7 +18,7 @@ import type {
 import { AsyncQueue } from './async-queue.js';
 import { OpenCodeEventMapper } from './event-mapper.js';
 import type { OpenCodeEvent } from './event-mapper.js';
-import { serverManager } from './server-manager.js';
+import { serverManager, OPENCODE_DEFAULT_MODEL } from './server-manager.js';
 import type { OpencodeClient, ModelSpec } from './server-manager.js';
 
 /**
@@ -187,8 +187,8 @@ export class OpenCodeHeadlessProvider implements HeadlessProvider {
 
     let sessionId: string;
 
-    // Parse the model ID if provided (e.g., 'anthropic/claude-sonnet-4-5-20250929')
-    const modelSpec = options.model ? parseModelId(options.model) : undefined;
+    // Always resolve model — use the default when none is explicitly set
+    const modelSpec = parseModelId(options.model ?? OPENCODE_DEFAULT_MODEL);
 
     try {
       // 2. Create or resume session

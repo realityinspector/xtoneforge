@@ -15,6 +15,7 @@ import type {
   InteractiveSpawnOptions,
   ProviderSessionId,
 } from '../types.js';
+import { OPENCODE_DEFAULT_MODEL } from './server-manager.js';
 
 // ============================================================================
 // Helpers
@@ -163,10 +164,9 @@ export class OpenCodeInteractiveProvider implements InteractiveProvider {
       args.push('--continue', shellQuote(options.resumeSessionId));
     }
 
-    // Pass model via --model flag (format: provider/model, e.g., 'anthropic/claude-sonnet-4-5-20250929')
-    if (options.model) {
-      args.push('--model', shellQuote(options.model));
-    }
+    // Always pass --model flag; use the default model when none is explicitly set
+    const model = options.model ?? OPENCODE_DEFAULT_MODEL;
+    args.push('--model', shellQuote(model));
 
     return args;
   }

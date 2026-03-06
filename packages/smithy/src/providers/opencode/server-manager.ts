@@ -108,7 +108,7 @@ interface OpencodeServer {
 // ============================================================================
 
 /** Default model for OpenCode provider */
-const OPENCODE_DEFAULT_MODEL = 'opencode/minimax-m2.5-free';
+export const OPENCODE_DEFAULT_MODEL = 'opencode/minimax-m2.5-free';
 
 export interface ServerManagerConfig {
   port?: number;
