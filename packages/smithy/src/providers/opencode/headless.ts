@@ -96,7 +96,11 @@ class OpenCodeHeadlessSession implements HeadlessSession {
   }
 
   async interrupt(): Promise<void> {
-    await this.client.session.abort({ path: { id: this.sessionId } });
+    const result = await this.client.session.abort({ path: { id: this.sessionId } });
+    if (result.error) {
+      const detail = typeof result.error === 'string' ? result.error : JSON.stringify(result.error);
+      throw new Error('OpenCode session abort failed: ' + detail);
+    }
   }
 
   close(): void {
@@ -189,15 +193,24 @@ export class OpenCodeHeadlessProvider implements HeadlessProvider {
     try {
       // 2. Create or resume session
       if (options.resumeSessionId) {
-        // Verify session exists (throws on 404)
-        await client.session.get({ path: { id: options.resumeSessionId } });
+        // Verify session exists
+        const getResult = await client.session.get({ path: { id: options.resumeSessionId } });
+        if (getResult.error) {
+          const detail = typeof getResult.error === 'string' ? getResult.error : JSON.stringify(getResult.error);
+          throw new Error('OpenCode session get failed: ' + detail);
+        }
         sessionId = options.resumeSessionId;
       } else {
         const result = await client.session.create({
           body: { title: options.initialPrompt?.slice(0, 100) || 'Stoneforge Agent' },
+          query: { directory: options.workingDirectory },
         });
+        if (result.error) {
+          const detail = typeof result.error === 'string' ? result.error : JSON.stringify(result.error);
+          throw new Error('OpenCode session creation failed: ' + detail);
+        }
         if (!result.data?.id) {
-          throw new Error('OpenCode session creation failed: no session ID returned');
+          throw new Error('OpenCode session creation failed: no session ID in response');
         }
         sessionId = result.data.id;
       }

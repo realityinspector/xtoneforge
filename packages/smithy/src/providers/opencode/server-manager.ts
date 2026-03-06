@@ -79,7 +79,7 @@ export interface ModelSpec {
 /** Minimal OpenCode client shape matching the real SDK response wrappers */
 export interface OpencodeClient {
   session: {
-    create(opts: { body: { title?: string } }): Promise<SdkResponse<OpencodeSession>>;
+    create(opts: { body: { title?: string }; query?: { directory?: string } }): Promise<SdkResponse<OpencodeSession>>;
     get(opts: { path: { id: string } }): Promise<SdkResponse<OpencodeSession>>;
     abort(opts: { path: { id: string } }): Promise<SdkResponse<unknown>>;
     promptAsync(opts: {
