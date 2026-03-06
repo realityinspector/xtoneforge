@@ -8,8 +8,8 @@ Platform applications: servers and web UIs.
 |-----|------|---------|
 | `apps/quarry-server/` | 3456 | Core API server |
 | `apps/quarry-web/` | 5173 | Core React SPA |
-| `apps/smithy-server/` | - | Orchestrator API server |
-| `apps/smithy-web/` | - | Orchestrator React SPA |
+| `apps/smithy-server/` | 3457 | Orchestrator API server |
+| `apps/smithy-web/` | 5174 | Orchestrator React SPA |
 
 ---
 
