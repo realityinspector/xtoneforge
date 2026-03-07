@@ -67,6 +67,17 @@ function createMockServices() {
         rateLimitedCount: 0,
       },
     ]),
+    getBySession: vi.fn().mockReturnValue({
+      group: 'session-abc',
+      totalInputTokens: 2000,
+      totalOutputTokens: 1000,
+      totalTokens: 3000,
+      sessionCount: 1,
+      avgDurationMs: 5000,
+      errorRate: 0,
+      failedCount: 0,
+      rateLimitedCount: 0,
+    }),
     getTimeSeries: vi.fn().mockReturnValue([
       {
         bucket: '2026-02-22',
@@ -215,5 +226,36 @@ describe('GET /api/provider-metrics', () => {
     expect(res.status).toBe(500);
     const body = await res.json();
     expect(body.error.code).toBe('INTERNAL_ERROR');
+  });
+
+  it('returns session-specific metrics when sessionId is provided', async () => {
+    const app = createMetricsRoutes(services);
+    const res = await app.request('/api/provider-metrics?sessionId=session-abc');
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.timeRange).toEqual({ days: 0, label: 'session' });
+    expect(body.groupBy).toBe('session');
+    expect(body.metrics).toHaveLength(1);
+    expect(body.metrics[0].group).toBe('session-abc');
+    expect(body.metrics[0].totalInputTokens).toBe(2000);
+    expect(body.metrics[0].totalOutputTokens).toBe(1000);
+
+    expect(services.metricsService.getBySession).toHaveBeenCalledWith('session-abc');
+    // Should NOT call aggregate methods
+    expect(services.metricsService.aggregateByProvider).not.toHaveBeenCalled();
+    expect(services.metricsService.aggregateByAgent).not.toHaveBeenCalled();
+  });
+
+  it('returns empty metrics array when sessionId has no data', async () => {
+    (services.metricsService.getBySession as ReturnType<typeof vi.fn>)
+      .mockReturnValue(null);
+
+    const app = createMetricsRoutes(services);
+    const res = await app.request('/api/provider-metrics?sessionId=session-unknown');
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.metrics).toHaveLength(0);
   });
 });

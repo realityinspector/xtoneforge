@@ -99,8 +99,10 @@ export const WorkspacePane = forwardRef<WorkspacePaneHandle, WorkspacePaneProps>
 
   const hasActiveSession = statusData?.hasActiveSession ?? false;
 
-  // Per-agent token usage (polls every 10s via shared React Query cache)
-  const { tokens: agentTokens } = useAgentTokens(pane.agentId);
+  // Per-session token usage (polls every 5s via React Query)
+  // Uses the current active session ID so tokens reflect only the current session
+  const activeSessionId = statusData?.activeSession?.id;
+  const { tokens: agentTokens } = useAgentTokens(pane.agentId, activeSessionId);
 
   // Update currentSessionId and providerSessionId when active session changes
   useEffect(() => {

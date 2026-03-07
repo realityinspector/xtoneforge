@@ -35,12 +35,25 @@ export function createMetricsRoutes(services: Services) {
    *   - timeRange: '7d' | '14d' | '30d' (default: '7d')
    *   - groupBy: 'provider' | 'model' | 'agent' (default: 'provider')
    *   - includeSeries: 'true' | 'false' (default: 'false') — include time-series data
+   *   - sessionId: string (optional) — filter to a specific session; returns metrics for that session only
    */
   app.get('/api/provider-metrics', (c) => {
     try {
+      const sessionId = c.req.query('sessionId');
       const timeRangeParam = c.req.query('timeRange');
       const groupBy = c.req.query('groupBy') || 'provider';
       const includeSeries = c.req.query('includeSeries') === 'true';
+
+      // If sessionId is provided, return metrics for that session only
+      if (sessionId) {
+        const sessionMetrics = services.metricsService.getBySession(sessionId);
+        const metrics = sessionMetrics ? [sessionMetrics] : [];
+        return c.json({
+          timeRange: { days: 0, label: 'session' },
+          groupBy: 'session',
+          metrics,
+        });
+      }
 
       if (groupBy !== 'provider' && groupBy !== 'model' && groupBy !== 'agent') {
         return c.json(

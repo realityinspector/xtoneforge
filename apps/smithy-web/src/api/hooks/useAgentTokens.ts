@@ -40,30 +40,42 @@ export function formatTokenCount(count: number): string {
 /**
  * Hook to get token usage for a specific agent.
  *
+ * When a sessionId is provided, returns token usage for that session only.
+ * This ensures workspace pane headers show tokens for the current active session
+ * rather than aggregated tokens across all past sessions.
+ *
  * @param agentId - The agent ID to get metrics for, or undefined to skip fetching
+ * @param sessionId - Optional session ID to filter to a specific session
  * @returns Token usage data for the agent, loading state, and any error
  */
-export function useAgentTokens(agentId: string | undefined) {
-  const { data, isLoading, error } = useProviderMetrics({
-    days: 7,
-    groupBy: 'agent',
-  });
+export function useAgentTokens(agentId: string | undefined, sessionId?: string) {
+  // When sessionId is provided, query metrics for that specific session
+  // Otherwise fall back to agent-level aggregation (7-day window)
+  const { data, isLoading, error } = useProviderMetrics(
+    sessionId
+      ? { sessionId }
+      : { days: 7, groupBy: 'agent' }
+  );
 
   if (!agentId || !data?.metrics) {
     return { tokens: null, isLoading, error };
   }
 
-  const agentMetrics = data.metrics.find((m) => m.group === agentId);
+  // When querying by session, the API returns at most one entry
+  // When querying by agent, find the entry matching the agent ID
+  const metrics = sessionId
+    ? data.metrics[0]
+    : data.metrics.find((m) => m.group === agentId);
 
-  if (!agentMetrics) {
+  if (!metrics) {
     return { tokens: null, isLoading, error };
   }
 
   const tokens: AgentTokenUsage = {
-    inputTokens: agentMetrics.totalInputTokens,
-    outputTokens: agentMetrics.totalOutputTokens,
-    totalTokens: agentMetrics.totalTokens,
-    sessionCount: agentMetrics.sessionCount,
+    inputTokens: metrics.totalInputTokens,
+    outputTokens: metrics.totalOutputTokens,
+    totalTokens: metrics.totalTokens,
+    sessionCount: metrics.sessionCount,
   };
 
   return { tokens, isLoading, error };

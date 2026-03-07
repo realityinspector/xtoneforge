@@ -41,6 +41,10 @@ export interface UseProviderMetricsOptions {
   groupBy?: 'provider' | 'model' | 'agent';
   /** Whether to include time-series data */
   includeSeries?: boolean;
+  /** Optional session ID to filter metrics to a specific session */
+  sessionId?: string;
+  /** Polling interval in ms (default: 5000) */
+  refetchInterval?: number;
 }
 
 /**
@@ -49,25 +53,37 @@ export interface UseProviderMetricsOptions {
  * @example
  * ```ts
  * const { data, isLoading, error } = useProviderMetrics({ days: 7, includeSeries: true });
+ * // Or fetch metrics for a specific session:
+ * const { data } = useProviderMetrics({ sessionId: 'session-abc' });
  * ```
  */
 export function useProviderMetrics(options?: UseProviderMetricsOptions) {
   const days = options?.days ?? 7;
   const groupBy = options?.groupBy ?? 'provider';
   const includeSeries = options?.includeSeries ?? false;
+  const sessionId = options?.sessionId;
+  const refetchInterval = options?.refetchInterval ?? 5000;
 
   const params = new URLSearchParams();
-  params.set('timeRange', `${days}d`);
-  params.set('groupBy', groupBy);
-  if (includeSeries) {
-    params.set('includeSeries', 'true');
+
+  if (sessionId) {
+    // Session-specific query — ignores timeRange and groupBy
+    params.set('sessionId', sessionId);
+  } else {
+    params.set('timeRange', `${days}d`);
+    params.set('groupBy', groupBy);
+    if (includeSeries) {
+      params.set('includeSeries', 'true');
+    }
   }
 
   const path = `/provider-metrics?${params.toString()}`;
 
   return useQuery<ProviderMetricsResponse, Error>({
-    queryKey: ['provider-metrics', days, groupBy, includeSeries],
+    queryKey: sessionId
+      ? ['provider-metrics', 'session', sessionId]
+      : ['provider-metrics', days, groupBy, includeSeries],
     queryFn: () => fetchApi<ProviderMetricsResponse>(path),
-    refetchInterval: 10000, // Poll every 10 seconds (matches useTasks pattern)
+    refetchInterval,
   });
 }

@@ -165,6 +165,12 @@ export interface MetricsService {
   aggregateByAgent(timeRange: TimeRange): AggregatedMetrics[];
 
   /**
+   * Get metrics for a specific session ID.
+   * Returns a single AggregatedMetrics entry for the session, or null if not found.
+   */
+  getBySession(sessionId: string): AggregatedMetrics | null;
+
+  /**
    * Get time-series data for trend charts
    */
   getTimeSeries(timeRange: TimeRange, groupBy: 'provider' | 'model'): TimeSeriesPoint[];
@@ -402,6 +408,45 @@ export function createMetricsService(storage: StorageBackend): MetricsService {
         failedCount: Number(row.failed_count),
         rateLimitedCount: Number(row.rate_limited_count),
       }));
+    },
+
+    getBySession(sessionId: string): AggregatedMetrics | null {
+      try {
+        const rows = storage.query<DbAggregateRow>(
+          `SELECT
+             session_id AS group_key,
+             COALESCE(SUM(input_tokens), 0) AS total_input_tokens,
+             COALESCE(SUM(output_tokens), 0) AS total_output_tokens,
+             COUNT(*) AS session_count,
+             COALESCE(AVG(duration_ms), 0) AS avg_duration_ms,
+             COALESCE(SUM(CASE WHEN outcome = 'failed' THEN 1 ELSE 0 END), 0) AS failed_count,
+             COALESCE(SUM(CASE WHEN outcome = 'rate_limited' THEN 1 ELSE 0 END), 0) AS rate_limited_count
+           FROM provider_metrics
+           WHERE session_id = ?
+           GROUP BY session_id`,
+          [sessionId]
+        );
+
+        if (rows.length === 0) return null;
+
+        const row = rows[0];
+        return {
+          group: row.group_key,
+          totalInputTokens: Number(row.total_input_tokens),
+          totalOutputTokens: Number(row.total_output_tokens),
+          totalTokens: Number(row.total_input_tokens) + Number(row.total_output_tokens),
+          sessionCount: Number(row.session_count),
+          avgDurationMs: Math.round(Number(row.avg_duration_ms)),
+          errorRate: Number(row.session_count) > 0
+            ? Number(row.failed_count) / Number(row.session_count)
+            : 0,
+          failedCount: Number(row.failed_count),
+          rateLimitedCount: Number(row.rate_limited_count),
+        };
+      } catch (err) {
+        logger.error('Failed to get metrics by session:', err);
+        return null;
+      }
     },
 
     getTimeSeries(timeRange: TimeRange, groupBy: 'provider' | 'model'): TimeSeriesPoint[] {

@@ -513,6 +513,74 @@ describe('MetricsService', () => {
   });
 
   // ========================================================================
+  // getBySession()
+  // ========================================================================
+
+  describe('getBySession', () => {
+    test('returns null when no metrics exist for session', () => {
+      const result = service.getBySession('nonexistent-session');
+      expect(result).toBeNull();
+    });
+
+    test('returns metrics for a specific session', () => {
+      service.record({
+        provider: 'claude-code',
+        model: 'claude-sonnet-4',
+        sessionId: 'session-target',
+        inputTokens: 2000,
+        outputTokens: 1000,
+        durationMs: 8000,
+        outcome: 'completed',
+      });
+
+      // Record another session that should NOT be included
+      service.record({
+        provider: 'claude-code',
+        model: 'claude-sonnet-4',
+        sessionId: 'session-other',
+        inputTokens: 5000,
+        outputTokens: 3000,
+        durationMs: 12000,
+        outcome: 'completed',
+      });
+
+      const result = service.getBySession('session-target');
+      expect(result).not.toBeNull();
+      expect(result!.group).toBe('session-target');
+      expect(result!.totalInputTokens).toBe(2000);
+      expect(result!.totalOutputTokens).toBe(1000);
+      expect(result!.totalTokens).toBe(3000);
+      expect(result!.sessionCount).toBe(1);
+    });
+
+    test('works with upserted session metrics', () => {
+      service.upsert({
+        provider: 'claude-code',
+        sessionId: 'session-upserted',
+        inputTokens: 1000,
+        outputTokens: 500,
+        durationMs: 3000,
+        outcome: 'completed',
+      });
+
+      service.upsert({
+        provider: 'claude-code',
+        sessionId: 'session-upserted',
+        inputTokens: 3000,
+        outputTokens: 1500,
+        durationMs: 6000,
+        outcome: 'completed',
+      });
+
+      const result = service.getBySession('session-upserted');
+      expect(result).not.toBeNull();
+      expect(result!.totalInputTokens).toBe(3000);
+      expect(result!.totalOutputTokens).toBe(1500);
+      expect(result!.sessionCount).toBe(1);
+    });
+  });
+
+  // ========================================================================
   // Edge cases
   // ========================================================================
 
