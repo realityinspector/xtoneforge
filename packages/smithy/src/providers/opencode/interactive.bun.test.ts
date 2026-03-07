@@ -101,7 +101,7 @@ describe('OpenCodeInteractiveProvider', () => {
       expect(command).toContain('--model');
     });
 
-    it('should pass --continue flag when resumeSessionId is provided', async () => {
+    it('should pass --session flag when resumeSessionId is provided', async () => {
       const provider = new OpenCodeInteractiveProvider('/usr/bin/opencode');
 
       await provider.spawn({
@@ -111,7 +111,7 @@ describe('OpenCodeInteractiveProvider', () => {
 
       const [_shell, args] = mockSpawn.mock.calls[0];
       const command = args[2] as string;
-      expect(command).toContain('--continue');
+      expect(command).toContain('--session');
     });
 
     it('should include working directory as positional arg in the command', async () => {
