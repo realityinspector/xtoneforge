@@ -1,0 +1,104 @@
+---
+title: "Stoneforge vs GitHub Copilot Workspace"
+description: "Compare Stoneforge and GitHub Copilot Workspace. Open-source, agent-agnostic orchestration vs GitHub-integrated cloud service."
+competitor: "GitHub Copilot Workspace"
+competitorUrl: "https://github.com/features/copilot"
+differentiator: "Open-source and agent-agnostic vs GitHub-locked cloud service"
+features:
+  - category: "Architecture"
+    feature: "Approach"
+    stoneforge: "Multi-agent orchestration with task dispatch"
+    competitor: "Issue-to-PR workflow with plan generation"
+  - category: "Architecture"
+    feature: "Parallel agents"
+    stoneforge: "Unlimited — isolated git worktrees"
+    competitor: "No — single session per workspace"
+  - category: "Architecture"
+    feature: "Agent-agnostic"
+    stoneforge: "Yes — Claude Code, Codex, OpenCode, any CLI agent"
+    competitor: "No — GitHub Copilot models only"
+  - category: "Workflow"
+    feature: "Task management"
+    stoneforge: "Yes — plans, dependencies, priorities, automatic dispatch"
+    competitor: "Yes — issue-based planning with spec generation"
+  - category: "Workflow"
+    feature: "Automatic merge & review"
+    stoneforge: "Yes — Steward agents handle merge and CI checks"
+    competitor: "No — creates PRs for manual review"
+  - category: "Workflow"
+    feature: "Dependency tracking"
+    stoneforge: "Yes — DAG-based dependency system"
+    competitor: "No explicit dependency management"
+  - category: "Cost & Control"
+    feature: "Pricing"
+    stoneforge: "Free and open-source"
+    competitor: "Included with GitHub Copilot subscription"
+  - category: "Cost & Control"
+    feature: "Self-hosted"
+    stoneforge: "Yes — runs on your infrastructure"
+    competitor: "No — cloud-only, GitHub-hosted"
+  - category: "Cost & Control"
+    feature: "Data privacy"
+    stoneforge: "Full control — code stays local"
+    competitor: "Code processed on GitHub's servers"
+  - category: "Platform"
+    feature: "GitHub integration"
+    stoneforge: "Yes — git-based, works with any remote"
+    competitor: "Yes — deep native GitHub integration"
+  - category: "Platform"
+    feature: "Platform lock-in"
+    stoneforge: "None — works with any git host"
+    competitor: "Yes — requires GitHub"
+  - category: "Platform"
+    feature: "Open source"
+    stoneforge: "Yes — Apache 2.0"
+    competitor: "No — proprietary"
+faqItems:
+  - question: "How does Stoneforge compare to GitHub Copilot Workspace?"
+    answer: "Both tools help AI work on code from task descriptions, but they differ in approach. Copilot Workspace generates a plan from a GitHub issue and creates a PR. Stoneforge orchestrates multiple agents working in parallel on separate tasks, manages dependencies between them, and handles merge automatically. Stoneforge is also open-source and works with any AI coding agent."
+  - question: "Can Stoneforge replace GitHub Copilot Workspace?"
+    answer: "For multi-agent parallel development, yes. Stoneforge provides task planning, automatic dispatch, parallel execution, and merge management. However, Copilot Workspace has tighter GitHub integration and a more guided issue-to-PR workflow that some teams prefer."
+  - question: "Does Stoneforge work with GitHub?"
+    answer: "Yes. Stoneforge is git-based and works with GitHub, GitLab, Bitbucket, or any git remote. Agents push to branches and create PRs through your existing git workflow."
+  - question: "Is Stoneforge better than Copilot Workspace for large projects?"
+    answer: "For projects that benefit from parallel execution, yes. Stoneforge can dispatch dozens of agents working on separate tasks simultaneously, with dependency tracking to ensure correct ordering. Copilot Workspace processes one issue at a time."
+verdict: "Choose Stoneforge when you need parallel multi-agent orchestration, want to avoid platform lock-in, or require self-hosting. It's ideal for teams that use multiple AI providers, need dependency-aware task ordering, or work with large codebases where parallel execution dramatically speeds up development."
+order: 3
+---
+
+## Cloud workspace vs. local orchestration
+
+GitHub Copilot Workspace and Stoneforge both aim to turn task descriptions into working code, but they take very different paths to get there.
+
+### Copilot Workspace: Issue to PR
+
+Copilot Workspace starts from a GitHub issue, generates a plan (specification, file changes), lets you iterate on the plan, then implements it and creates a pull request. It's a guided, linear workflow tightly integrated with GitHub.
+
+### Stoneforge: Task to merge
+
+Stoneforge takes a broader approach. You create tasks (potentially dozens), define dependencies between them, and the Daemon automatically dispatches them to available agents. Each agent works in an isolated worktree, and Steward agents handle merging and review.
+
+### The parallelism advantage
+
+The biggest difference is scale. Copilot Workspace processes one issue at a time in a guided flow. Stoneforge dispatches as many tasks as you have agents:
+
+```bash
+# Plan an entire sprint's worth of work
+sf plan create --title "Q1 API Overhaul"
+
+# All of these run in parallel
+sf task create --title "Migrate to OpenAPI 3.1" --plan "Q1 API Overhaul"
+sf task create --title "Add request validation middleware" --plan "Q1 API Overhaul"
+sf task create --title "Implement API versioning" --plan "Q1 API Overhaul"
+sf task create --title "Add rate limiting per API key" --plan "Q1 API Overhaul"
+sf task create --title "Generate API client SDKs" --plan "Q1 API Overhaul" \
+  --depends-on "Migrate to OpenAPI 3.1"
+```
+
+### No platform lock-in
+
+Stoneforge works with any git host — GitHub, GitLab, Bitbucket, or self-hosted. It's also agent-agnostic, so you're not tied to any single AI provider. Use the best agent for each task type.
+
+<Fragment slot="competitor-verdict">
+  <p>Choose GitHub Copilot Workspace when you want a guided, visual issue-to-PR workflow with deep GitHub integration. It's great for teams already invested in the GitHub ecosystem who want a low-friction way to turn issues into code changes. The plan-iterate-implement flow provides more visibility into what the AI will do before it does it.</p>
+</Fragment>

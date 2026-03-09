@@ -70,4 +70,27 @@ const integrations = defineCollection({
   }),
 });
 
-export const collections = { blog, 'use-cases': useCases, integrations };
+const comparisons = defineCollection({
+  loader: glob({ pattern: '**/*.mdx', base: './src/content/comparisons' }),
+  schema: z.object({
+    title: z.string(),
+    description: z.string().max(160),
+    competitor: z.string(),
+    competitorUrl: z.string().optional(),
+    differentiator: z.string(),
+    features: z.array(z.object({
+      category: z.string(),
+      feature: z.string(),
+      stoneforge: z.string(),
+      competitor: z.string(),
+    })),
+    faqItems: z.array(z.object({
+      question: z.string(),
+      answer: z.string(),
+    })).default([]),
+    verdict: z.string(),
+    order: z.number(),
+  }),
+});
+
+export const collections = { blog, 'use-cases': useCases, integrations, comparisons };
