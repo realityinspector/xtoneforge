@@ -56,13 +56,13 @@ Creates `.stoneforge/` directory containing config.yaml, SQLite database, .gitig
 **File:** `reset.ts`
 **Description:** Reset a Stoneforge workspace.
 
-Drops and reinitializes the database. With `--full`, deletes everything and reinitializes from scratch. With `--server`, also restarts the smithy server.
+Drops and reinitializes the database. With `--full`, deletes everything and reinitializes from scratch. With `--server`, sends a stop request to the smithy server.
 
-| Option | Description |
-|--------|-------------|
-| `--force` | Skip confirmation prompt |
-| `--full` | Delete everything and reinitialize |
-| `--server` | Also reset/restart the server |
+| Option | Short | Description |
+|--------|-------|-------------|
+| `--force` | `-f` | Skip confirmation prompt |
+| `--full` | | Delete everything and reinitialize |
+| `--server <url>` | `-s` | Orchestrator server URL (default: http://localhost:3456) |
 
 ### `sf help`
 **File:** `help.ts`
@@ -125,7 +125,7 @@ Drops and reinitializes the database. With `--full`, deletes everything and rein
 | `--title <text>` | `-t` | New title |
 | `--priority <1-5>` | `-p` | New priority (tasks only) |
 | `--complexity <1-5>` | `-c` | New complexity (tasks only) |
-| `--status <status>` | `-s` | New status (tasks: open, in_progress, closed, deferred) |
+| `--status <status>` | `-s` | New status (tasks: open, in_progress, review, backlog, deferred, closed) |
 | `--assignee <id>` | `-a` | New assignee (empty string to unassign) |
 | `--description <text>` | `-d` | Update description |
 | `--metadata <json>` | | JSON metadata to merge (null values remove keys) |
@@ -148,7 +148,7 @@ Drops and reinitializes the database. With `--full`, deletes everything and rein
 
 ### `sf task` (parent command)
 **File:** `task.ts`
-**Description:** Task management parent. Contains subcommands: create, list, show, update, delete, ready, blocked, backlog, close, reopen, assign, defer, undefer, describe, activate, complete, handoff.
+**Description:** Task management parent. Contains subcommands: create, list, show, update, delete, ready, blocked, backlog, close, reopen, assign, defer, undefer, describe, activate.
 
 ### `sf ready` / `sf task ready`
 **Description:** List tasks ready for work (open, not blocked, not deferred, not scheduled for future).
@@ -215,17 +215,11 @@ Drops and reinitializes the database. With `--full`, deletes everything and rein
 |--------|-------|-------------|
 | `--content <text>` | `-c` | Description content |
 | `--file <path>` | `-f` | Read description from file |
-| `--show` | | Show current description |
+| `--show` | `-s` | Show current description |
 | `--append` | | Append to existing description |
 
 ### `sf task activate <id>`
 **Description:** Move a task from backlog to open status.
-
-### `sf task complete <id>`
-**Description:** Complete a task (alias for close within the task subcommand context).
-
-### `sf task handoff <id>`
-**Description:** Hand off a task with a message (used by workers in orchestration).
 
 ### `sf task list`
 **Description:** List tasks with filtering. Supports `--ready` flag for dispatch-ready tasks.
@@ -511,7 +505,7 @@ Drops and reinitializes the database. With `--full`, deletes everything and rein
 | `--all` | | Include read and archived items |
 | `--status <status>` | `-s` | Filter: unread, read, or archived |
 | `--limit <n>` | `-l` | Maximum items |
-| `--full` | | Show complete message content |
+| `--full` | `-F` | Show complete message content |
 
 ### `sf inbox read <inbox-item-id>`
 **Description:** Mark an inbox item as read.
@@ -602,7 +596,7 @@ Drops and reinitializes the database. With `--full`, deletes everything and rein
 | `--type <type>` | `-t` | Content type: text, markdown, json (default: text) |
 | `--category <cat>` | | Category (spec, prd, reference, tutorial, etc.) |
 | `--tag <tag>` | | Add tag (repeatable) |
-| `--metadata <json>` | | JSON metadata |
+| `--metadata <json>` | `-m` | JSON metadata |
 
 ### `sf document list`
 **Description:** List documents.
@@ -612,8 +606,8 @@ Drops and reinitializes the database. With `--full`, deletes everything and rein
 | `--limit <n>` | `-l` | Maximum results |
 | `--type <type>` | `-t` | Filter by content type |
 | `--category <cat>` | | Filter by category |
-| `--status <status>` | `-s` | Filter: active, archived |
-| `--all` | | Include archived documents |
+| `--status <status>` | | Filter: active, archived |
+| `--all` | `-a` | Include archived documents |
 
 ### `sf document show <id>`
 **Description:** Show document details and content.
@@ -857,8 +851,8 @@ Drops and reinitializes the database. With `--full`, deletes everything and rein
 
 | Option | Short | Description |
 |--------|-------|-------------|
-| `--provider <name>` | | Provider name (default: github) |
-| `--type <type>` | | Element type: task or document |
+| `--provider <name>` | `-p` | Provider name (default: github) |
+| `--type <type>` | `-t` | Element type: task or document |
 
 ### `sf external-sync unlink <element-id>`
 **Description:** Unlink a local element from an external service.
@@ -1054,9 +1048,9 @@ Drops and reinitializes the database. With `--full`, deletes everything and rein
 
 | Option | Short | Description |
 |--------|-------|-------------|
-| `--range <range>` | | Time range (e.g., 7d, 14d, 30d) |
-| `--provider <name>` | | Filter by provider |
-| `--group-by <field>` | | Group by: provider (default) or model |
+| `--range <range>` | `-r` | Time range (e.g., 7d, 14d, 30d) |
+| `--provider <name>` | `-p` | Filter by provider |
+| `--group-by <field>` | `-g` | Group by: provider (default) or model |
 
 ### `sf doctor`
 **File:** `admin.ts`
