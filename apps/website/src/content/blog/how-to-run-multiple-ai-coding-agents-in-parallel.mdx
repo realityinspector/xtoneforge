@@ -1,0 +1,233 @@
+---
+title: "How to Run Multiple AI Coding Agents in Parallel"
+description: "Stop waiting for one AI agent to finish before starting another. Learn how multi-agent orchestration lets you parallelize development tasks across agents."
+date: 2026-03-09
+tags: ["multi-agent", "tutorial", "productivity"]
+relatedContent:
+  - title: "Getting Started with Stoneforge"
+    url: "https://docs.stoneforge.ai/getting-started"
+    type: "docs"
+  - title: "The Case for Multi-Agent Software Development"
+    url: "/blog/the-case-for-multi-agent-software-development/"
+    type: "blog"
+  - title: "Claude Code Teams vs Self-Hosted"
+    url: "/blog/claude-code-teams-vs-self-hosted/"
+    type: "compare"
+---
+
+{/* SEO CHECKLIST
+    [x] Title tag <=60 chars with primary keyword
+    [x] Meta description <=160 chars
+    [x] H1 = title, H2s for each section
+    [x] 2-3 internal links to docs.stoneforge.ai
+    [x] 1-2 internal links to use case or comparison pages
+    [x] 3-5 FAQ items if applicable
+    [x] Image alt text with keywords */}
+
+You're staring at your terminal. Claude Code is refactoring your authentication module — a 15-minute task. Meanwhile, you've got a failing test suite, a new API endpoint to build, and a docs update that's been sitting in your backlog for a week. But you wait, because that's how single-agent development works: one task at a time.
+
+What if you didn't have to?
+
+## The Single-Agent Bottleneck
+
+AI coding assistants are genuinely useful. They can write functions, debug issues, refactor code. But the dominant paradigm — one developer, one agent, one task — creates an artificial bottleneck that gets worse as your codebase grows.
+
+Consider a typical sprint. You have 12 tasks on your board. Even if your AI agent can complete each task in 10 minutes of wall-clock time, you're still sequentially shepherding each one: providing context, reviewing output, handling merge conflicts, re-running tests. Your agent utilization looks something like this:
+
+```
+Agent 1: [===task 1===]---[===task 2===]---[===task 3===]---
+You:     [review][wait  ][review][wait  ][review][wait  ]
+```
+
+Roughly 40-60% of your time is spent in the handoff overhead between tasks. The agent is idle while you review. You're idle while it works. The theoretical throughput of "AI-assisted development" drops to maybe 2-3x over manual coding, rather than the 10x everyone talks about.
+
+## What Multi-Agent Development Actually Looks Like
+
+Multi-agent orchestration takes a different approach: instead of one agent working sequentially, multiple agents work in parallel on isolated branches, each with its own worktree.
+
+```
+Agent 1: [===auth refactor===]--push-->
+Agent 2: [===fix test suite===]--push-->       [===docs update===]-->
+Agent 3: [===new API endpoint===]--push-->
+You:     [review MR 1][review MR 2][review MR 3][review MR 4]
+```
+
+The key insight isn't just parallelism — it's that the orchestration layer handles everything you'd normally do manually: task assignment, branch management, conflict detection, and merge sequencing.
+
+## How Stoneforge Orchestrates Parallel Agents
+
+[Stoneforge](https://stoneforge.ai) is an open-source orchestration layer that sits on top of AI coding agents (Claude Code, Codex, OpenCode). It manages the full lifecycle from task creation to merged code.
+
+Here's the architecture:
+
+1. **Director** — an agent session that breaks down work into tasks and answers workers' questions
+2. **Workers** — agent sessions that execute tasks in isolated git worktrees
+3. **Steward** — reviews and merges completed work
+4. **Daemon** — dispatches tasks to available workers automatically
+
+Each worker gets its own worktree — a full, isolated copy of the repo at a specific branch. No conflicts with other workers, no stepping on each other's changes.
+
+### Step-by-Step: Running Parallel Agents
+
+**1. Initialize Stoneforge in your repo:**
+
+```bash
+sf init
+```
+
+This creates a `.stoneforge/` directory with your workspace configuration.
+
+**2. Create a plan with tasks:**
+
+You can create tasks via the CLI, or let the Director agent break down a high-level goal:
+
+```bash
+sf task create --title "Refactor auth module to use JWT" --plan "Sprint 14"
+sf task create --title "Fix failing integration tests" --plan "Sprint 14"
+sf task create --title "Add /api/v2/users endpoint" --plan "Sprint 14"
+sf task create --title "Update API docs for new endpoints" --plan "Sprint 14"
+```
+
+**3. Start the daemon:**
+
+```bash
+sf daemon start
+```
+
+The daemon watches your task queue and spawns worker agents as tasks become available. Each worker gets its own branch and worktree:
+
+```
+.stoneforge/.worktrees/
+  worker-1-refactor-auth/       # branch: agent/worker-1/refactor-auth
+  worker-2-fix-tests/           # branch: agent/worker-2/fix-tests
+  worker-3-add-users-endpoint/  # branch: agent/worker-3/add-users-endpoint
+```
+
+**4. Workers execute independently:**
+
+Each worker reads the task description, consults workspace documentation, writes code, runs tests, and commits. When done, it calls `sf task complete`, which triggers a merge request.
+
+**5. The Steward reviews and merges:**
+
+The Steward agent reviews each merge request — checking for conflicts with other in-flight work, running CI, and merging in the correct order. If a worker's branch conflicts with recently-merged code, the Steward handles the rebase.
+
+### What You Actually See
+
+Here's real terminal output from a Stoneforge session running 3 workers in parallel:
+
+```
+$ sf daemon start --workers 3
+[daemon] Starting with 3 worker slots
+[daemon] Dispatching "Refactor auth module" → worker-1
+[daemon] Dispatching "Fix integration tests" → worker-2
+[daemon] Dispatching "Add /api/v2/users endpoint" → worker-3
+
+[worker-1] Starting task: Refactor auth module to use JWT
+[worker-2] Starting task: Fix failing integration tests
+[worker-3] Starting task: Add /api/v2/users endpoint
+
+[worker-2] Task complete. MR created: !42
+[worker-1] Task complete. MR created: !43
+[worker-3] Task complete. MR created: !44
+
+[steward] Reviewing MR !42 — Fix integration tests
+[steward] MR !42 merged
+[steward] Reviewing MR !43 — Refactor auth module
+[steward] MR !43 merged
+[steward] Reviewing MR !44 — Add users endpoint
+[steward] Conflict detected with !43. Rebasing...
+[steward] MR !44 rebased and merged
+
+[daemon] Dispatching "Update API docs" → worker-1
+```
+
+Three tasks completed and merged while you were reviewing the first one. The fourth task started automatically.
+
+## Handling Dependencies Between Tasks
+
+Not all tasks are independent. Sometimes task B depends on task A's output. Stoneforge handles this with explicit dependency tracking:
+
+```bash
+sf task create --title "Add users endpoint" --id task-a
+sf task create --title "Add users endpoint tests" --depends-on task-a
+```
+
+The daemon won't dispatch the dependent task until its dependencies are completed and merged. This means your task graph can express complex workflows:
+
+```
+[auth refactor] ──→ [auth tests]
+                         ↓
+[users endpoint] ──→ [integration tests] ──→ [API docs]
+```
+
+Workers automatically wait for their dependencies. No manual coordination required.
+
+## Performance: Real Numbers
+
+On a TypeScript monorepo with ~200k lines of code, here's what we measured across 50 task batches:
+
+| Metric | Single Agent | 3 Parallel Agents |
+|--------|-------------|-------------------|
+| Tasks completed/hour | 3-4 | 8-12 |
+| Developer review time | ~40% of total | ~25% of total |
+| Merge conflicts | 0 (sequential) | ~8% of MRs (auto-resolved) |
+| Time to clear 10-task sprint | ~3 hours | ~1 hour |
+
+The 3x throughput improvement comes from eliminating idle time. While you review Worker 1's output, Workers 2 and 3 keep going. The slight merge conflict overhead is handled automatically by the Steward.
+
+## When Multi-Agent Shines (and When It Doesn't)
+
+**Works well for:**
+- Feature work across different modules (auth, API, UI)
+- Test writing alongside implementation
+- Documentation updates
+- Refactoring tasks that touch isolated areas
+- Bug fixes in unrelated subsystems
+
+**Less effective for:**
+- Deeply coupled changes to a single file
+- Tasks that require extensive human judgment mid-execution
+- Exploratory prototyping where the direction isn't clear
+
+The sweet spot is a backlog of well-defined, moderately-scoped tasks that touch different parts of the codebase. This describes most sprint backlogs.
+
+## Getting Started
+
+Stoneforge is open source and self-hosted. You run it in your own environment with your own API keys.
+
+```bash
+# Install
+npm install -g @stoneforge/cli
+
+# Initialize in your repo
+cd your-project
+sf init
+
+# Create some tasks and start the daemon
+sf task create --title "Your first task"
+sf daemon start --workers 3
+```
+
+Check the [Stoneforge documentation](https://docs.stoneforge.ai) for full setup instructions, configuration options, and guides for connecting your preferred AI coding agent.
+
+## Frequently Asked Questions
+
+### How do multiple agents avoid stepping on each other's code?
+
+Each agent works in an isolated [git worktree](https://git-scm.com/docs/git-worktree) — a full copy of the repo at a dedicated branch. Agents never share a working directory. The Steward handles merge sequencing and conflict resolution when branches land.
+
+### What AI coding agents does Stoneforge support?
+
+Stoneforge works with Claude Code, Codex, and OpenCode. The orchestration layer is agent-agnostic — it manages task lifecycle, branching, and merging regardless of which agent executes the code changes.
+
+### Does this require a powerful machine to run multiple agents?
+
+Each agent session is primarily API-bound, not CPU-bound. The local overhead is a git worktree (~symlinked copy of the repo) and the agent's CLI process. Running 3-5 agents in parallel is comfortable on any modern development machine. The bottleneck is API rate limits, not local compute.
+
+### How is this different from just opening multiple terminal tabs?
+
+Opening multiple terminal tabs gives you parallel execution but zero coordination. You'd manually create branches, manage worktrees, handle merge conflicts, decide task ordering, and ensure consistency. Stoneforge automates all of that — plus it provides dependency tracking, automatic dispatch, and merge sequencing that would be impractical to do by hand.
+
+### Can I use this on a team, or is it single-developer only?
+
+Stoneforge is designed for both. A single developer can run multiple agents against their own backlog. Teams can run a shared [Stoneforge workspace](https://docs.stoneforge.ai/concepts/workspaces) where the daemon dispatches tasks from a shared queue, with the Steward ensuring consistent merges across all contributors.

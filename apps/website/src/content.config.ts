@@ -18,6 +18,15 @@ const blog = defineCollection({
     image: z.string().optional(),
     tags: z.array(z.string()).default([]),
     draft: z.boolean().default(false),
+    relatedContent: z
+      .array(
+        z.object({
+          title: z.string(),
+          url: z.string(),
+          type: z.enum(['docs', 'blog', 'use-case', 'compare']),
+        }),
+      )
+      .optional(),
   }),
 });
 

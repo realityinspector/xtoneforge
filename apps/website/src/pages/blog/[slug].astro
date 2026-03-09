@@ -23,6 +23,7 @@ const { Content } = await render(post);
   image={post.data.image}
   tags={post.data.tags}
   slug={post.id}
+  relatedContent={post.data.relatedContent}
 >
   <Content />
 </BlogPostLayout>
