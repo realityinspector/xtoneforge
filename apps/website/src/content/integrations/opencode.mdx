@@ -1,0 +1,96 @@
+---
+title: "OpenCode Orchestration with Stoneforge"
+description: "Run multiple OpenCode agents in parallel with Stoneforge. Automated dispatch, context management, and merge coordination."
+agentName: "OpenCode"
+agentUrl: "https://github.com/nicholasoxford/opencode"
+configSnippet: |
+  # .stoneforge/config.yaml
+  orchestrator:
+    agent: opencode
+    maxConcurrent: 4
+    worktreeIsolation: true
+
+  agents:
+    worker:
+      provider: opencode
+      model: default
+    steward:
+      provider: opencode
+      autoMerge: true
+features:
+  - feature: "Single terminal session, one task"
+    stoneforgeAdds: "Multiple OpenCode agents across parallel tasks"
+  - feature: "Manual project navigation and context"
+    stoneforgeAdds: "Automatic task dispatch with full project context"
+  - feature: "No multi-agent coordination"
+    stoneforgeAdds: "Director plans, workers execute, stewards review"
+  - feature: "Manual git workflow"
+    stoneforgeAdds: "Isolated worktrees with automated branching and merging"
+  - feature: "No failure recovery"
+    stoneforgeAdds: "Auto-resume and handoff on session failure"
+docsLinks:
+  - title: "Quick Start Guide"
+    url: "https://docs.stoneforge.ai/getting-started/quick-start/"
+  - title: "Agent Configuration"
+    url: "https://docs.stoneforge.ai/core-concepts/agents/"
+  - title: "Multi-Agent Providers"
+    url: "https://docs.stoneforge.ai/guides/multi-provider/"
+order: 3
+---
+
+OpenCode is an open-source AI coding agent that runs in your terminal, providing interactive code editing and generation capabilities. It works well for individual tasks — but like all single-agent tools, it handles one thing at a time.
+
+Stoneforge orchestrates **multiple OpenCode instances** to work on different tasks simultaneously, coordinating their output and managing the merge process.
+
+### Parallel development with OpenCode
+
+Instead of running OpenCode manually for each task, Stoneforge automates the entire workflow:
+
+```bash
+# Create tasks for OpenCode agents
+sf plan create --title "Frontend Refresh"
+
+sf task create --title "Redesign login page" --plan "Frontend Refresh"
+sf task create --title "Add dark mode support" --plan "Frontend Refresh"
+sf task create --title "Implement search component" --plan "Frontend Refresh"
+
+# Start — OpenCode agents are dispatched automatically
+sf serve
+```
+
+Each OpenCode agent works in its own git worktree with full project context. One agent redesigns the login page while another adds dark mode — independently and simultaneously.
+
+### Coordinated output
+
+The challenge with running multiple coding agents isn't getting them to write code — it's ensuring their changes work together. Stoneforge handles this through:
+
+- **Dependency-aware dispatch** — tasks that depend on each other are sequenced correctly
+- **Worktree isolation** — agents can't interfere with each other's work
+- **Steward review** — completed work is tested and validated before merging
+- **Conflict detection** — merge issues are caught early and resolved automatically when possible
+
+### Task lifecycle management
+
+Stoneforge manages the full lifecycle for each OpenCode agent:
+
+1. **Dispatch** — Agent receives task with context, acceptance criteria, and branch
+2. **Execution** — Agent works in isolation, commits regularly, pushes to remote
+3. **Handoff** — If context fills up or agent gets stuck, clean handoff to a fresh session
+4. **Completion** — Agent signals done, Steward takes over for review
+5. **Merge** — Changes are tested, reviewed, and merged into the main branch
+
+### Getting started
+
+```bash
+# Install Stoneforge
+npm install -g @stoneforge/cli
+
+# Initialize in your project
+sf init
+
+# Configure for OpenCode in .stoneforge/config.yaml
+# Start orchestrating
+sf serve
+```
+
+Stoneforge auto-detects your project structure and configures sensible defaults. Customize agent count, model, and merge policies in the config file.

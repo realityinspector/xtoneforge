@@ -40,4 +40,25 @@ const useCases = defineCollection({
   }),
 });
 
-export const collections = { blog, 'use-cases': useCases };
+const integrations = defineCollection({
+  loader: glob({ pattern: '**/*.mdx', base: './src/content/integrations' }),
+  schema: z.object({
+    title: z.string(),
+    description: z.string().max(160),
+    agentName: z.string(),
+    agentUrl: z.string(),
+    logo: z.string().optional(),
+    configSnippet: z.string(),
+    features: z.array(z.object({
+      feature: z.string(),
+      stoneforgeAdds: z.string(),
+    })),
+    docsLinks: z.array(z.object({
+      title: z.string(),
+      url: z.string(),
+    })).default([]),
+    order: z.number(),
+  }),
+});
+
+export const collections = { blog, 'use-cases': useCases, integrations };
