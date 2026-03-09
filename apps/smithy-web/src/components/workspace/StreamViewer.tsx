@@ -973,6 +973,14 @@ export function StreamViewer({
 
       // Automatically send the file messages as input
       await sendInput(messagesText);
+
+      // Auto-refresh scroll position after upload to fix visual artifacts from drag+drop
+      setTimeout(() => {
+        if (scrollRef.current) {
+          shouldAutoScrollRef.current = true;
+          scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+      }, 300);
     }
   }, [enableFileDrop, status, uploadFile, sendInput, isPaneDrag]);
 

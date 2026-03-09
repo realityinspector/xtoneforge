@@ -711,8 +711,11 @@ export const XTerminal = forwardRef<XTerminalHandle, XTerminalProps>(function XT
       terminalRef.current?.writeln(
         `\x1b[32m  ${messages.length} file(s) uploaded and path(s) inserted\x1b[0m`
       );
+
+      // Auto-refresh terminal after upload to fix mangled output from drag+drop
+      setTimeout(() => { refresh(); }, 300);
     }
-  }, [fileDropEnabled, interactive, uploadFile, sendToServer, isFileDrag]);
+  }, [fileDropEnabled, interactive, uploadFile, sendToServer, isFileDrag, refresh]);
 
   // Handle drag over
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
