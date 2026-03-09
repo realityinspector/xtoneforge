@@ -45,13 +45,34 @@ const imageUrl = new URL(image, Astro.site);
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={imageUrl} />
 
-    <!-- Fonts — preload critical, load rest async -->
+    <!-- Fonts — preload critical display font, load body font normally, defer code font -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap"
+      rel="preload"
+      as="style"
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap"
+      rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400&display=swap"
+        rel="stylesheet"
+      />
+    </noscript>
 
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json" set:html={JSON.stringify({
@@ -59,9 +80,14 @@ const imageUrl = new URL(image, Astro.site);
       "@type": "SoftwareApplication",
       "name": "Stoneforge",
       "applicationCategory": "DeveloperApplication",
+      "applicationSubCategory": "AI Development Tool",
       "operatingSystem": "macOS, Linux, Windows",
       "description": description,
       "url": "https://stoneforge.ai",
+      "screenshot": "https://stoneforge.ai/og.png",
+      "featureList": "Multi-agent orchestration, Git worktree isolation, Automatic merge review, Dependency-aware task dispatch, Real-time web dashboard, Multi-provider support (Claude Code, OpenCode, Codex)",
+      "downloadUrl": "https://www.npmjs.com/package/@stoneforge/smithy",
+      "softwareVersion": "0.1.0",
       "offers": {
         "@type": "Offer",
         "price": "0",
