@@ -2,6 +2,13 @@
 import BaseLayout from './BaseLayout.astro';
 import PostMeta from '../components/blog/PostMeta.astro';
 import TagList from '../components/blog/TagList.astro';
+import RelatedContent from '../components/ui/RelatedContent.astro';
+
+interface RelatedItem {
+  title: string;
+  url: string;
+  type: 'docs' | 'blog' | 'use-case' | 'compare';
+}
 
 interface Props {
   title: string;
@@ -12,9 +19,10 @@ interface Props {
   image?: string;
   tags: string[];
   slug: string;
+  relatedContent?: RelatedItem[];
 }
 
-const { title, description, date, updatedDate, author, image, tags, slug } = Astro.props;
+const { title, description, date, updatedDate, author, image, tags, slug, relatedContent } = Astro.props;
 const canonicalUrl = new URL(`/blog/${slug}/`, Astro.site).href;
 const ogImage = image || '/og.png';
 const wordCount = Astro.slots.has('default') ? 0 : 0; // computed at render
@@ -88,6 +96,11 @@ const wordCount = Astro.slots.has('default') ? 0 : 0; // computed at render
         <div class="prose">
           <slot />
         </div>
+
+        <!-- Related Content -->
+        {relatedContent && relatedContent.length > 0 && (
+          <RelatedContent items={relatedContent} />
+        )}
       </div>
     </div>
   </article>
