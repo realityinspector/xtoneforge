@@ -1,0 +1,66 @@
+---
+title: "Large-Scale Refactoring"
+description: "Break down massive refactors into parallel tasks and let AI agents execute them across your codebase simultaneously."
+problem: "Large refactors are dreaded because they're all-or-nothing. A single developer touching hundreds of files creates a monster PR that's impossible to review, and the branch goes stale before it's merged. Splitting the work manually is tedious and error-prone."
+icon: "refactor"
+order: 2
+docsLinks:
+  - title: "Plans & Task Breakdown"
+    url: "https://docs.stoneforge.ai/core-concepts/plans/"
+  - title: "Dependency Chains"
+    url: "https://docs.stoneforge.ai/core-concepts/dependencies/"
+  - title: "Merge Strategy"
+    url: "https://docs.stoneforge.ai/guides/merge-strategy/"
+faqItems:
+  - question: "How does Stoneforge break down a large refactor into smaller tasks?"
+    answer: "You describe the refactoring goal to the Director agent, which analyzes your codebase and creates a plan — a dependency-ordered list of tasks. Each task targets a specific module, file group, or pattern. You review the plan before execution starts, and can adjust scope or ordering."
+  - question: "Can Stoneforge handle refactors that touch shared code?"
+    answer: "Yes. The dependency system ensures tasks that modify shared code are sequenced correctly. If Task B depends on changes from Task A, the orchestrator won't start Task B until Task A is complete and merged. For truly independent modules, tasks run in parallel."
+  - question: "How do I ensure consistency across a parallelized refactor?"
+    answer: "Define the refactoring pattern once in the plan description, and every agent follows the same approach. Stoneforge also supports workspace-level prompts so you can enforce naming conventions, import patterns, and coding standards across all agents."
+  - question: "What if I need to refactor across multiple packages in a monorepo?"
+    answer: "Stoneforge's plan system handles cross-package refactors natively. Create tasks scoped to each package, set up dependencies for shared types or interfaces, and let the agents work through the graph. Each task produces a small, reviewable PR."
+  - question: "How long does a typical large refactor take with Stoneforge?"
+    answer: "It depends on the scope, but teams report 5-10x speedups compared to manual refactoring. A refactor that would take a developer two weeks of focused work can often be completed in a day or two with parallel agents, plus human review time."
+---
+
+Stoneforge makes large refactors tractable by decomposing them into a dependency graph of small, focused tasks — then executing them in parallel across multiple agents.
+
+### Plan, don't just start
+
+The worst refactors start with `git checkout -b big-refactor` and end three weeks later with a 200-file PR. Stoneforge's approach is different: the [Director agent](https://docs.stoneforge.ai/core-concepts/agents/) analyzes the refactoring goal and produces a structured plan.
+
+```bash
+# Describe what you want to refactor
+sf plan create --title "Migrate from Express to Hono" \
+  --description "Replace Express with Hono across all API routes. Update middleware, error handlers, and tests."
+
+# The Director breaks it into ordered tasks:
+# 1. Add Hono dependency and shared middleware adapter
+# 2. Migrate /api/auth routes (no deps on other routes)
+# 3. Migrate /api/users routes (parallel with auth)
+# 4. Migrate /api/billing routes (parallel)
+# 5. Update error handling middleware (depends on 1)
+# 6. Update integration tests (depends on 2, 3, 4)
+# 7. Remove Express dependency and cleanup
+```
+
+### Small PRs, fast reviews
+
+Each task produces a focused merge request — typically touching 5-20 files instead of 200. Reviewers can understand the change in minutes, not hours. The Steward agent adds context about what changed and why, linking back to the overall plan.
+
+### Ordered execution with maximum parallelism
+
+Stoneforge's [dependency engine](https://docs.stoneforge.ai/core-concepts/dependencies/) finds the optimal execution order. Independent modules are refactored in parallel. Tasks with shared dependencies are queued. The result: maximum throughput without breaking the build.
+
+```bash
+# Start the refactor — agents execute the plan
+sf serve
+
+# Monitor progress in real time
+# Dashboard shows: 3 agents working, 2 tasks complete, 1 in review
+```
+
+### Rollback-friendly
+
+Because each task is a separate merge request, you can roll back individual changes without reverting the entire refactor. If the billing route migration introduces a bug, revert that one PR while the rest of the refactor stays in place.

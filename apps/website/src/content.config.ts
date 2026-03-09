@@ -21,4 +21,23 @@ const blog = defineCollection({
   }),
 });
 
-export const collections = { blog };
+const useCases = defineCollection({
+  loader: glob({ pattern: '**/*.mdx', base: './src/content/use-cases' }),
+  schema: z.object({
+    title: z.string(),
+    description: z.string().max(160),
+    problem: z.string(),
+    icon: z.string().optional(),
+    docsLinks: z.array(z.object({
+      title: z.string(),
+      url: z.string(),
+    })).default([]),
+    faqItems: z.array(z.object({
+      question: z.string(),
+      answer: z.string(),
+    })).default([]),
+    order: z.number(),
+  }),
+});
+
+export const collections = { blog, 'use-cases': useCases };
