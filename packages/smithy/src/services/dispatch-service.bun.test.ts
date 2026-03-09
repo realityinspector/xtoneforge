@@ -28,6 +28,7 @@ import {
 } from './task-assignment-service.js';
 import {
   createAgentRegistry,
+  getAgentMetadata,
   type AgentRegistry,
 } from './agent-registry.js';
 import {
@@ -204,6 +205,33 @@ describe('DispatchService', () => {
       await expect(
         dispatchService.dispatch(task.id, 'nonexistent-agent' as EntityId)
       ).rejects.toThrow('Agent not found');
+    });
+
+    test('auto-creates channel when agent has no pre-existing channel', async () => {
+      const task = await createTestTask('Channel-less dispatch');
+      const worker = await createTestWorker('no-channel-worker');
+      const agentId = worker.id as unknown as EntityId;
+
+      // Delete the agent's channel to simulate a missing channel
+      const originalMeta = getAgentMetadata(worker);
+      expect(originalMeta?.channelId).toBeDefined();
+      await api.delete(originalMeta!.channelId as unknown as ElementId);
+
+      // Dispatch should succeed by auto-creating the channel via ensureAgentChannel
+      const result = await dispatchService.dispatch(task.id, agentId);
+
+      expect(result.task).toBeDefined();
+      expect(result.task.assignee).toBe(agentId);
+      expect(result.channel).toBeDefined();
+      expect(result.notification).toBeDefined();
+
+      // The auto-created channel should be different from the deleted one
+      expect(result.channel.id).not.toBe(originalMeta!.channelId);
+
+      // The agent's metadata should be updated with the new channel ID
+      const updatedAgent = await registry.getAgent(agentId);
+      const updatedMeta = getAgentMetadata(updatedAgent!);
+      expect(updatedMeta?.channelId).toBe(result.channel.id);
     });
   });
 

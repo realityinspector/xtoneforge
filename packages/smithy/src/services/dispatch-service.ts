@@ -226,11 +226,8 @@ export class DispatchServiceImpl implements DispatchService {
       throw new Error(`Agent not found: ${agentId}`);
     }
 
-    // Get the agent's channel (check before assignment to avoid orphaned assignments)
-    const channel = await this.agentRegistry.getAgentChannel(agentId);
-    if (!channel) {
-      throw new Error(`Agent channel not found for agent: ${agentId}`);
-    }
+    // Ensure the agent's channel exists (auto-creates if missing)
+    const channel = await this.agentRegistry.ensureAgentChannel(agentId);
 
     // Assign the task using TaskAssignmentService
     const assignOptions: AssignTaskOptions = {
