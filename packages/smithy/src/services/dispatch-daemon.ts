@@ -535,6 +535,17 @@ export class DispatchDaemonImpl implements DispatchDaemon {
    */
   private cachedTargetBranch: string | undefined;
 
+  /**
+   * Tracks warning notification keys that have already been emitted.
+   * Prevents duplicate warning toasts from flooding the UI on every poll cycle.
+   * Keys encode the warning type + entity (e.g., `merge-steward-no-worktree:task-123`).
+   * Keys are removed when the underlying condition clears, or expire after 5 minutes.
+   */
+  private readonly emittedWarnings = new Map<string, number>();
+
+  /** TTL for emitted warning deduplication keys (5 minutes). */
+  private static readonly WARNING_DEDUP_TTL_MS = 5 * 60 * 1000;
+
   constructor(
     api: QuarryAPI,
     agentRegistry: AgentRegistry,
@@ -1418,7 +1429,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
                 `Recovery steward orphan recovery: task ${task.id} has had ${recoveryStewardSessions.length} steward sessions without resolution — escalating to director`,
                 { taskId: task.id, agentId: recoverySteward.id, stewardSessionCount: recoveryStewardSessions.length }
               );
-              this.emitter.emit('daemon:notification', {
+              this.emitWarningOnce(`recovery-steward-escalation:${task.id}`, {
                 type: 'warning' as const,
                 title: 'Recovery steward escalation',
                 message: `Task ${task.id} ("${task.title}") has failed triage by recovery stewards ${recoveryStewardSessions.length} times. Manual intervention may be required.`,
@@ -1831,6 +1842,39 @@ export class DispatchDaemonImpl implements DispatchDaemon {
   // ----------------------------------------
   // Private Helpers
   // ----------------------------------------
+
+  /**
+   * Emit a warning notification at most once per unique key until the condition
+   * clears or the TTL expires.  Only `warning` type notifications are
+   * deduplicated — `info` and `error` notifications bypass this helper.
+   */
+  private emitWarningOnce(
+    key: string,
+    data: { type: 'warning'; title: string; message?: string },
+  ): void {
+    // Prune expired entries on each call (lightweight — typically < 10 entries)
+    const now = Date.now();
+    for (const [k, ts] of this.emittedWarnings) {
+      if (now - ts > DispatchDaemonImpl.WARNING_DEDUP_TTL_MS) {
+        this.emittedWarnings.delete(k);
+      }
+    }
+
+    if (this.emittedWarnings.has(key)) {
+      return; // Already emitted and still within TTL
+    }
+
+    this.emittedWarnings.set(key, now);
+    this.emitter.emit('daemon:notification', data);
+  }
+
+  /**
+   * Clear a previously-emitted warning key so the warning can fire again if
+   * the condition recurs.
+   */
+  private clearWarning(key: string): void {
+    this.emittedWarnings.delete(key);
+  }
 
   private createPollInterval(): NodeJS.Timeout {
     return setInterval(async () => {
@@ -2976,7 +3020,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
 
     // Guard: never spawn a steward in the project root — skip if no worktree
     if (!worktreePath) {
-      this.emitter.emit('daemon:notification', {
+      this.emitWarningOnce(`merge-steward-no-worktree:${task.id}`, {
         type: 'warning' as const,
         title: 'Merge steward skipped',
         message: `Cannot spawn merge steward for task ${task.id}: worktree missing and no branch info available to create a new one.`,
@@ -3146,7 +3190,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
 
     if (!recoverySteward) {
       // No recovery steward available — emit a notification and leave the task as-is
-      this.emitter.emit('daemon:notification', {
+      this.emitWarningOnce(`recovery-steward-unavailable:${task.id}`, {
         type: 'warning' as const,
         title: 'Recovery steward unavailable',
         message: `Task ${task.id} is stuck after ${taskMeta?.resumeCount ?? 0} resume attempts, but no recovery steward is available. The task will not be resumed again until a recovery steward is available.`,
@@ -3215,7 +3259,7 @@ export class DispatchDaemonImpl implements DispatchDaemon {
 
     // Guard: never spawn a steward without a worktree
     if (!worktreePath) {
-      this.emitter.emit('daemon:notification', {
+      this.emitWarningOnce(`recovery-steward-no-worktree:${task.id}`, {
         type: 'warning' as const,
         title: 'Recovery steward skipped',
         message: `Cannot spawn recovery steward for task ${task.id}: worktree missing and no branch info available to create a new one.`,
