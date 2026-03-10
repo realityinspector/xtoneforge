@@ -84,7 +84,7 @@ export default defineConfig({
               items: [
                 { label: 'Contributing', slug: 'community/contributing' },
                 { label: 'Changelog', slug: 'community/changelog' },
-                { label: 'Resources', slug: 'community/roadmap' },
+                { label: 'Resources', slug: 'community/resources' },
               ],
             },
           ],
