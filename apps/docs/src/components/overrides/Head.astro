@@ -181,8 +181,10 @@ window.plausible = window.plausible || function() { (window.plausible.q = window
 <!-- Plausible Custom Events -->
 <script is:inline>
 (function() {
-  // Use the queue-backed plausible function — always available thanks to the queue pattern above.
-  var plausible = window.plausible;
+  // Always reference window.plausible directly — do not cache it in a variable.
+  // The queue stub gets replaced by the real Plausible function when the script loads.
+  // A cached reference would point to the stale queue stub.
+  function plausible(name, opts) { window.plausible(name, opts); }
 
   // --- Global listeners (registered once, use event delegation) ---
 
