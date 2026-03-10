@@ -1,6 +1,6 @@
 ---
-title: "Introducing Stoneforge: Open-Source Orchestration for AI Coding Agents"
-description: "Run multiple AI coding agents in parallel without the coordination tax. Automatic dispatch, merging, and recovery. Works with Claude Code, Codex, and OpenCode."
+title: "Introducing Stoneforge: AI Orchestration Platform"
+description: "Stoneforge is an open-source AI orchestration platform for multi-agent coding. Dispatch, merge, and recover agents automatically."
 date: 2026-03-03
 image: "/blog/images/stoneforge.png"
 tags: ["announcements", "stoneforge", "multi-agent", "open-source", "architecture"]
@@ -90,6 +90,8 @@ import fourStewards from '../../assets/blog/four-stewards.png';
 import providersCompact from '../../assets/blog/providers-compact.png';
 import directorsChamber from '../../assets/blog/directors-chamber.png';
 
+Stoneforge is an open-source AI orchestration platform for multi-agent coding workflows. Before we explain how it works, here's the problem it solves.
+
 It's Tuesday night. You have four terminals arranged across two monitors. In the first, Claude is implementing the payment integration you described twenty minutes ago. In the second, another instance is building the admin dashboard. The third is supposed to be writing API tests, but it stalled ten minutes ago and you haven't checked why yet. The fourth just finished its task, you think, but you forgot to tell it to commit and push before you closed the session.
 
 You open a fifth terminal to deal with the fourth's orphaned work. While you're there, you notice that the payment agent and the test agent have both modified the same utility file. Different changes. Same file. Neither knows about the other. You're about to have a merge conflict on code that you didn't write, in a file you haven't looked at today.
@@ -130,7 +132,7 @@ Agent teams stores state in ephemeral file-based task lists. Stoneforge event-so
 
 Stoneforge also supports multiple providers (Claude Code, OpenCode, OpenAI Codex) and lets you split agents across multiple Claude MAX/Pro plans to get around rate limits. Agent teams is Claude-only.
 
-## You describe what you want. Agents build it in parallel.
+## Multi-agent coding: you describe what you want, agents build it in parallel
 
 You open the Director Panel in the Stoneforge dashboard and type: *"Build me an authentication system with OAuth, session management, and a login UI."*
 

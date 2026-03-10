@@ -43,9 +43,9 @@ The inefficiency compounds. Between tasks, you re-orient the agent with context 
 
 For teams with large backlogs of independent work, this sequential model wastes the majority of available compute time. Four independent tasks that each take 10 minutes should not require 40 minutes of wall-clock time plus your overhead.
 
-## The Multi-Agent Approach
+## The Multi-Agent Coding Approach
 
-Multi-agent development runs several AI coding agents simultaneously, each handling a different task on its own branch. The theoretical speedup is straightforward: if you have N independent tasks and N agents, your wall-clock time drops from the sum of all tasks to the duration of the longest single task.
+Running multiple AI agents in parallel means several AI coding agents work simultaneously, each handling a different task on its own branch. The theoretical speedup is straightforward: if you have N independent tasks and N agents, your wall-clock time drops from the sum of all tasks to the duration of the longest single task.
 
 ```
 Sequential (1 agent):  10 + 8 + 12 + 6 = 36 minutes
@@ -61,9 +61,9 @@ The approach works especially well for:
 - Test writing alongside implementation
 - Bug fixes across unrelated subsystems
 
-## The Hard Parts
+## The Hard Parts of Parallel AI Development
 
-Running `claude code` in four terminal tabs simultaneously is technically parallel execution. It is not multi-agent development. The gap between the two is entirely about coordination, and coordination is where things break down.
+Running `claude code` in four terminal tabs simultaneously is technically parallel execution. It is not multi-agent coding. The gap between the two is entirely about coordination, and coordination is where things break down.
 
 ### Merge Conflicts
 
@@ -201,9 +201,9 @@ git log --oneline -5
 
 Three tasks ran in parallel. The fourth waited for its dependency. Total wall-clock time was roughly the duration of the longest task, not the sum of all four.
 
-## When NOT to Use Multi-Agent Parallelism
+## When NOT to Run Multiple AI Agents in Parallel
 
-Parallel agents are not always the right tool. Save yourself the overhead in these situations:
+Parallel AI development is not always the right approach. Save yourself the overhead in these situations:
 
 **Small, quick changes.** If you need to rename a variable or fix a typo, spinning up an orchestration layer is overkill. Use a single agent or do it by hand.
 

@@ -1,6 +1,6 @@
 ---
 title: "Codex CLI Orchestration with Stoneforge"
-description: "Orchestrate multiple OpenAI Codex CLI agents in parallel with Stoneforge for automated task dispatch and merging."
+description: "Orchestrate OpenAI Codex CLI as an AI coding agent with Stoneforge. Parallel dispatch, worktree isolation, and automated merging."
 agentName: "Codex CLI"
 agentUrl: "https://github.com/openai/codex"
 configSnippet: |
@@ -40,11 +40,11 @@ docsLinks:
 order: 2
 ---
 
-OpenAI's [Codex CLI](https://github.com/openai/codex) is a terminal-based coding agent that runs in a sandboxed environment with built-in safety controls. Each Codex session handles one task in isolation.
+OpenAI's [Codex CLI](https://github.com/openai/codex) is an AI coding agent that runs in a sandboxed terminal environment with built-in safety controls. As a Codex AI coding agent, each session handles one task in isolation.
 
-Stoneforge adds multi-agent orchestration on top of Codex, dispatching multiple tasks to parallel Codex agents and handling coordination, merging, and failure recovery.
+Stoneforge adds multi-agent orchestration on top of OpenAI Codex, dispatching multiple tasks to parallel Codex CLI agents and handling coordination, merging, and failure recovery.
 
-### How Stoneforge dispatches to Codex
+### How Stoneforge dispatches to Codex CLI
 
 When you create tasks, the Daemon watches the queue and dispatches work to available Codex agents:
 
@@ -89,3 +89,9 @@ sf serve
 ```
 
 Codex CLI has three approval modes: `suggest` (approve everything), `auto-edit` (auto-apply file changes, approve shell commands), and `full-auto` (no confirmation). Set the `approval` field in your Stoneforge config to match your preferred level of oversight.
+
+### Learn more
+
+- [Best AI Coding Agents in 2026](/blog/best-ai-coding-agents-2026/) — see how Codex CLI compares to other AI coding agents
+- [Run Multiple AI Coding Agents in Parallel](/blog/run-multiple-ai-coding-agents-parallel/) — a practical guide to parallel agent workflows
+- [Claude Code Orchestration](/integrations/claude-code/) — compare with another supported AI coding agent provider

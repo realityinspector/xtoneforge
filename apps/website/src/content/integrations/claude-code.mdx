@@ -1,6 +1,6 @@
 ---
 title: "Claude Code Orchestration with Stoneforge"
-description: "Run multiple Claude Code agents in parallel with Stoneforge handling task dispatch, context handoff, and merge coordination."
+description: "Orchestrate Claude Code as an AI coding agent with Stoneforge. Parallel task dispatch, context handoff, and merge coordination."
 agentName: "Claude Code"
 agentUrl: "https://code.claude.com/docs/en/overview"
 configSnippet: |
@@ -50,13 +50,13 @@ docsLinks:
 order: 1
 ---
 
-Claude Code is Anthropic's agentic coding tool. It runs in your terminal, reads your codebase, edits files, runs commands, and commits code. A single session typically handles one task at a time, though Anthropic's experimental [Agent Teams](https://code.claude.com/docs/en/agent-teams) feature can coordinate multiple sessions within Claude Code itself.
+Claude Code is Anthropic's AI coding agent for the terminal. It reads your codebase, edits files, runs commands, and commits code. As a Claude code agent, a single session typically handles one task at a time, though Anthropic's experimental [Agent Teams](https://code.claude.com/docs/en/agent-teams) feature can coordinate multiple sessions within Claude Code itself.
 
-Stoneforge takes a different approach to multi-agent coordination. Rather than running within Claude Code, it wraps Claude Code sessions from the outside, dispatching tasks across multiple agents in isolated git worktrees and managing the merge process.
+Stoneforge takes a different approach to multi-agent coordination. Rather than running within the Claude AI coding agent, it wraps Claude Code sessions from the outside, dispatching tasks across multiple agents in isolated git worktrees and managing the merge process.
 
-### Parallel task execution
+### Parallel task execution with Claude Code
 
-You define the work, and Stoneforge dispatches it to multiple Claude Code sessions running in parallel:
+You define the work, and Stoneforge dispatches it to multiple Claude Code agent sessions running in parallel:
 
 ```bash
 # Create a plan with multiple tasks
@@ -83,9 +83,9 @@ Claude Code has a 200k token context window, and performance starts to degrade w
 
 Long tasks that would exhaust a single session's context get split across multiple sessions. Some context is inevitably lost in the handoff, but the structured format preserves the important parts.
 
-### Merge coordination
+### Merge coordination for Claude Code agents
 
-Running multiple coding agents in parallel means dealing with merge conflicts. Stoneforge's Steward agent handles this:
+Running multiple Claude AI coding agents in parallel means dealing with merge conflicts. Stoneforge's Steward agent handles this:
 
 - Runs your test suite against each completed branch
 - Detects merge conflicts early
@@ -131,3 +131,9 @@ sf serve
 ```
 
 The default configuration works with Claude Code out of the box. Adjust agent count, model selection, and merge behavior in `.stoneforge/config.yaml`.
+
+### Learn more
+
+- [Best AI Coding Agents in 2026](/blog/best-ai-coding-agents-2026/) — see how Claude Code compares to other AI coding agents
+- [Run Multiple AI Coding Agents in Parallel](/blog/run-multiple-ai-coding-agents-parallel/) — step-by-step guide to parallel agent workflows
+- [Claude Code Teams vs Self-Hosted](/blog/claude-code-teams-vs-self-hosted/) — compare managed vs self-hosted Claude Code setups
