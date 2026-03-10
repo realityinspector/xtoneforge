@@ -1,18 +1,151 @@
 ---
-import type { Props } from '@astrojs/starlight/props';
+import type { StarlightRouteData } from '@astrojs/starlight/route-data';
 import Default from '@astrojs/starlight/components/Head.astro';
 
-const pageTitle = Astro.props.entry?.data?.title;
+const route = Astro.locals.starlightRoute as StarlightRouteData;
+const pageTitle = route?.entry?.data?.title;
 const title = pageTitle
   ? `${pageTitle} | Stoneforge Docs`
   : 'Stoneforge Docs — Multi-Agent Orchestration Platform';
-const description = Astro.props.entry?.data?.description
+const description = route?.entry?.data?.description
   || 'Documentation for Stoneforge, the open-source multi-agent orchestration platform for AI coding agents.';
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site);
 const imageUrl = new URL('/og.png', Astro.site);
+
+// --- JSON-LD Structured Data ---
+const siteUrl = 'https://docs.stoneforge.ai';
+const pathname = Astro.url.pathname;
+const slug = route?.entry?.slug || route?.slug || '';
+
+// WebSite schema (every page)
+const websiteSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Stoneforge Documentation',
+  url: siteUrl,
+  publisher: {
+    '@type': 'Organization',
+    name: 'Stoneforge',
+    url: 'https://stoneforge.ai',
+  },
+};
+
+// BreadcrumbList schema (every page except homepage)
+function buildBreadcrumbs(pagePath: string) {
+  // Remove leading/trailing slashes, split into segments
+  const segments = pagePath.replace(/^\/|\/$/g, '').split('/').filter(Boolean);
+  if (segments.length === 0) return null;
+
+  const items = [
+    {
+      '@type': 'ListItem',
+      position: 1,
+      name: 'Home',
+      item: siteUrl,
+    },
+  ];
+
+  // Build breadcrumb items from path segments
+  let currentPath = '';
+  for (let i = 0; i < segments.length; i++) {
+    currentPath += `/${segments[i]}`;
+    const name = segments[i]
+      .split('-')
+      .map((w: string) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
+    items.push({
+      '@type': 'ListItem',
+      position: i + 2,
+      name: i === segments.length - 1 && pageTitle ? pageTitle : name,
+      item: `${siteUrl}${currentPath}/`,
+    });
+  }
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: items,
+  };
+}
+
+const breadcrumbSchema = buildBreadcrumbs(pathname);
+
+// Determine page section from slug
+const isGuide = slug.startsWith('guides/');
+const isReference = slug.startsWith('reference/');
+const isCoreConceptOrGettingStarted = slug.startsWith('core-concepts/') || slug.startsWith('getting-started/');
+const isCommunity = slug.startsWith('community/');
+const isHomepage = pathname === '/' || slug === '';
+
+// Article/TechArticle schema for content pages
+function buildArticleSchema() {
+  if (isHomepage || !pageTitle) return null;
+
+  const author = {
+    '@type': 'Organization',
+    name: 'Stoneforge',
+    url: 'https://stoneforge.ai',
+  };
+
+  if (isReference) {
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'TechArticle',
+      headline: pageTitle,
+      description,
+      author,
+      publisher: { '@type': 'Organization', name: 'Stoneforge' },
+      url: canonicalUrl.href,
+      applicationCategory: 'DeveloperApplication',
+      proficiencyLevel: 'Advanced',
+    };
+  }
+
+  if (isGuide) {
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'TechArticle',
+      headline: pageTitle,
+      description,
+      author,
+      publisher: { '@type': 'Organization', name: 'Stoneforge' },
+      url: canonicalUrl.href,
+    };
+  }
+
+  // Core concepts, getting started, community pages
+  if (isCoreConceptOrGettingStarted || isCommunity) {
+    return {
+      '@context': 'https://schema.org',
+      '@type': 'TechArticle',
+      headline: pageTitle,
+      description,
+      author,
+      publisher: { '@type': 'Organization', name: 'Stoneforge' },
+      url: canonicalUrl.href,
+    };
+  }
+
+  return null;
+}
+
+const articleSchema = buildArticleSchema();
+
+// Combine all schemas into a single @graph
+const jsonLdSchemas: Record<string, unknown>[] = [websiteSchema];
+if (breadcrumbSchema) jsonLdSchemas.push(breadcrumbSchema);
+if (articleSchema) jsonLdSchemas.push(articleSchema);
+
+const jsonLd = JSON.stringify({
+  '@context': 'https://schema.org',
+  '@graph': jsonLdSchemas.map(({ '@context': _ctx, ...rest }) => rest),
+});
 ---
 
 <Default {...Astro.props}><slot /></Default>
+
+<!-- JSON-LD Structured Data -->
+<script type="application/ld+json" set:html={jsonLd} />
 
 <!-- Open Graph -->
 <meta property="og:type" content="website" />
