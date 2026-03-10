@@ -1,8 +1,8 @@
 ---
 title: "Claude Code Orchestration with Stoneforge"
-description: "Run multiple Claude Code agents in parallel. Stoneforge orchestrates dispatch, context management, merging, and recovery."
+description: "Run multiple Claude Code agents in parallel with Stoneforge handling task dispatch, context handoff, and merge coordination."
 agentName: "Claude Code"
-agentUrl: "https://docs.anthropic.com/en/docs/claude-code"
+agentUrl: "https://code.claude.com/docs/en/overview"
 configSnippet: |
   # .stoneforge/config.yaml
   orchestrator:
@@ -32,12 +32,12 @@ features:
     stoneforgeAdds: "Isolated worktrees per agent, parallel branches"
   - feature: "Manual code review and merging"
     stoneforgeAdds: "Steward agent reviews, tests, and merges automatically"
-  - feature: "No recovery if session crashes"
-    stoneforgeAdds: "Auto-resume with context preservation on failure"
+  - feature: "Session state lost on crash"
+    stoneforgeAdds: "Re-dispatches tasks from last committed state on failure"
   - feature: "You manage task ordering"
     stoneforgeAdds: "Dependency-aware dispatch with priority queues"
-  - feature: "No coordination between instances"
-    stoneforgeAdds: "Director plans work, workers execute, stewards merge"
+  - feature: "Agent Teams (experimental) for multi-session coordination"
+    stoneforgeAdds: "Role-based orchestration: director plans, workers execute, stewards merge"
 docsLinks:
   - title: "Quick Start Guide"
     url: "https://docs.stoneforge.ai/getting-started/quick-start/"
@@ -50,13 +50,13 @@ docsLinks:
 order: 1
 ---
 
-Claude Code is Anthropic's agentic coding tool — a terminal-based AI that reads your codebase, edits files, runs commands, and commits code. It's powerful on its own, but it works on one task at a time in a single session.
+Claude Code is Anthropic's agentic coding tool. It runs in your terminal, reads your codebase, edits files, runs commands, and commits code. A single session typically handles one task at a time, though Anthropic's experimental [Agent Teams](https://code.claude.com/docs/en/agent-teams) feature can coordinate multiple sessions within Claude Code itself.
 
-Stoneforge turns Claude Code into a **parallel development platform**. Instead of running one Claude Code session, you describe the work that needs to happen and Stoneforge dispatches it across multiple Claude Code agents — each in its own isolated worktree, each working on a different task.
+Stoneforge takes a different approach to multi-agent coordination. Rather than running within Claude Code, it wraps Claude Code sessions from the outside, dispatching tasks across multiple agents in isolated git worktrees and managing the merge process.
 
 ### Parallel task execution
 
-A single Claude Code session can handle one feature, one bug fix, or one refactoring pass at a time. With Stoneforge, you can run 4, 6, or even 10 Claude Code agents simultaneously:
+You define the work, and Stoneforge dispatches it to multiple Claude Code sessions running in parallel:
 
 ```bash
 # Create a plan with multiple tasks
@@ -67,56 +67,53 @@ sf task create --title "Build notification system" --plan "Sprint 14"
 sf task create --title "Refactor auth middleware" --plan "Sprint 14"
 sf task create --title "Add integration tests for billing" --plan "Sprint 14"
 
-# Start orchestration — Claude Code agents pick up tasks
+# Start orchestration
 sf serve
 ```
 
-Each task gets dispatched to a fresh Claude Code session with its own git worktree. Agent-1 builds the invitation API while Agent-2 works on notifications and Agent-3 refactors auth — simultaneously, without conflicts.
+Each task gets its own Claude Code session and its own git worktree. One agent builds the invitation API while another works on notifications, independently and in parallel.
 
-### Intelligent context management
+### Context management across sessions
 
-Claude Code sessions have a finite context window. When a session runs long, context fills up and quality degrades. Stoneforge solves this with **automatic handoff**:
+Claude Code has a 200k token context window, and performance starts to degrade well before that limit. Stoneforge manages this by triggering handoffs when an agent's context gets full:
 
-1. When an agent's context reaches ~140k tokens, it creates a structured handoff
-2. The handoff captures what's done, what's remaining, and key context
-3. A fresh Claude Code session picks up exactly where the previous one left off
-4. No work is lost, no context is forgotten
+1. At ~140k tokens, the agent creates a structured handoff capturing progress and remaining work
+2. A fresh Claude Code session picks up with the handoff context
+3. Committed and pushed work carries over automatically
 
-This means complex tasks that would overwhelm a single Claude Code session are handled seamlessly across multiple sessions.
+Long tasks that would exhaust a single session's context get split across multiple sessions. Some context is inevitably lost in the handoff, but the structured format preserves the important parts.
 
 ### Merge coordination
 
-The hardest part of running multiple coding agents isn't the coding — it's the merging. When 6 agents are writing code in parallel, merge conflicts are inevitable.
-
-Stoneforge's **Steward agent** handles this automatically:
+Running multiple coding agents in parallel means dealing with merge conflicts. Stoneforge's Steward agent handles this:
 
 - Runs your test suite against each completed branch
-- Detects merge conflicts before they become problems
+- Detects merge conflicts early
 - Resolves straightforward conflicts automatically
 - Creates merge requests with change summaries for human review
-- Sequences merges to minimize conflicts using the dependency graph
+- Sequences merges using the dependency graph to reduce conflicts
 
 ### Role-based orchestration
 
 Stoneforge assigns Claude Code sessions to specialized roles:
 
-- **Director** — Creates plans, breaks down work, answers questions from workers
-- **Workers** — Execute tasks, write code, commit and push
-- **Stewards** — Review merge requests, run checks, merge approved work
-- **Daemon** — Dispatches tasks to available workers automatically
+- **Director** creates plans, breaks down work, and answers questions from workers
+- **Workers** execute tasks, write code, commit and push
+- **Stewards** review merge requests, run checks, and merge approved work
+- **Daemon** dispatches tasks to available workers automatically
 
-Each role gets tailored system prompts and tool access. Workers can't merge their own code. Stewards don't write features. The Director doesn't get bogged down in implementation details.
+Each role gets tailored system prompts and tool access. Workers can't merge their own code, and stewards don't write features. This separation keeps each session focused.
 
 ### Failure recovery
 
-If a Claude Code session crashes, loses connection, or hits an unrecoverable error, Stoneforge detects it and automatically:
+If a Claude Code session crashes or loses connection, Stoneforge detects it and re-dispatches the task:
 
-1. Preserves the agent's git state (committed and pushed work is safe)
-2. Marks the task for re-dispatch
-3. Spawns a fresh Claude Code session with the task context
-4. Resumes work from the last known-good state
+1. Committed and pushed work is preserved in the git worktree
+2. The task gets marked for re-dispatch
+3. A fresh Claude Code session picks up with the task context
+4. Work resumes from the last committed state
 
-No manual intervention required. Your development pipeline keeps moving.
+Uncommitted work within a crashed session is lost, so Stoneforge's system prompts instruct agents to commit and push frequently.
 
 ### Getting started
 
@@ -133,4 +130,4 @@ sf init
 sf serve
 ```
 
-The default configuration works with Claude Code out of the box. Customize agent count, model selection, and merge behavior in `.stoneforge/config.yaml`.
+The default configuration works with Claude Code out of the box. Adjust agent count, model selection, and merge behavior in `.stoneforge/config.yaml`.
