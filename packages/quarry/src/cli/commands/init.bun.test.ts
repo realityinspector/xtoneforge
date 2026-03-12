@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { existsSync, rmSync, readFileSync, mkdirSync, writeFileSync, mkdtempSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { initCommand, DEFAULT_AGENTS_MD, DEFAULT_AGENTS, OPERATOR_ENTITY_ID } from './init.js';
+import { initCommand, DEFAULT_AGENTS_MD, DEFAULT_AGENTS, OPERATOR_ENTITY_ID, WORKFLOW_PRESET_CONFIGS } from './init.js';
 import { ExitCode, DEFAULT_GLOBAL_OPTIONS } from '../types.js';
 import { createStorage, initializeSchema } from '@stoneforge/storage';
 import { createQuarryAPI } from '../../api/quarry-api.js';
@@ -681,6 +681,102 @@ describe('initCommand', () => {
 
       const data = result.data as { skillsInstalled: number };
       expect(typeof data.skillsInstalled).toBe('number');
+    });
+  });
+
+  describe('workflow preset via --preset flag', () => {
+    it('should apply auto preset config values to config.yaml', async () => {
+      const result = await initCommand.handler([], {
+        ...DEFAULT_GLOBAL_OPTIONS,
+        preset: 'auto',
+      } as any);
+      expect(result.exitCode).toBe(ExitCode.SUCCESS);
+
+      const configPath = join(testDir, '.stoneforge', 'config.yaml');
+      const content = readFileSync(configPath, 'utf-8');
+
+      // Auto preset: autoMerge=true, no approval needed, unrestricted
+      expect(content).toMatch(/autoMerge:\s*true/);
+      expect(content).toMatch(/requireApproval:\s*false/);
+      expect(content).toMatch(/preset:\s*['"]?auto['"]?/);
+
+      const data = result.data as { preset: string };
+      expect(data.preset).toBe('auto');
+    });
+
+    it('should apply review preset config values to config.yaml', async () => {
+      const result = await initCommand.handler([], {
+        ...DEFAULT_GLOBAL_OPTIONS,
+        preset: 'review',
+      } as any);
+      expect(result.exitCode).toBe(ExitCode.SUCCESS);
+
+      const configPath = join(testDir, '.stoneforge', 'config.yaml');
+      const content = readFileSync(configPath, 'utf-8');
+
+      // Review preset: autoMerge=true, targetBranch=stoneforge/review
+      expect(content).toMatch(/autoMerge:\s*true/);
+      expect(content).toMatch(/targetBranch:\s*['"]?stoneforge\/review['"]?/);
+      expect(content).toMatch(/requireApproval:\s*false/);
+      expect(content).toMatch(/preset:\s*['"]?review['"]?/);
+
+      const data = result.data as { preset: string };
+      expect(data.preset).toBe('review');
+    });
+
+    it('should apply approve preset config values to config.yaml', async () => {
+      const result = await initCommand.handler([], {
+        ...DEFAULT_GLOBAL_OPTIONS,
+        preset: 'approve',
+      } as any);
+      expect(result.exitCode).toBe(ExitCode.SUCCESS);
+
+      const configPath = join(testDir, '.stoneforge', 'config.yaml');
+      const content = readFileSync(configPath, 'utf-8');
+
+      // Approve preset: autoMerge=false, requireApproval=true, restricted permissions
+      expect(content).toMatch(/autoMerge:\s*false/);
+      expect(content).toMatch(/requireApproval:\s*true/);
+      expect(content).toMatch(/preset:\s*['"]?approve['"]?/);
+      expect(content).toMatch(/permissionModel:\s*['"]?restricted['"]?/);
+
+      const data = result.data as { preset: string };
+      expect(data.preset).toBe('approve');
+    });
+
+    it('should reject invalid preset values', async () => {
+      const result = await initCommand.handler([], {
+        ...DEFAULT_GLOBAL_OPTIONS,
+        preset: 'invalid',
+      } as any);
+      expect(result.exitCode).toBe(ExitCode.ERROR);
+    });
+
+    it('WORKFLOW_PRESET_CONFIGS defines all three presets', () => {
+      expect(WORKFLOW_PRESET_CONFIGS.auto).toBeDefined();
+      expect(WORKFLOW_PRESET_CONFIGS.review).toBeDefined();
+      expect(WORKFLOW_PRESET_CONFIGS.approve).toBeDefined();
+
+      // Each preset has merge, workflow, and agents config
+      for (const preset of ['auto', 'review', 'approve'] as const) {
+        const config = WORKFLOW_PRESET_CONFIGS[preset];
+        expect(config.merge).toBeDefined();
+        expect(config.workflow).toBeDefined();
+        expect(config.agents).toBeDefined();
+        expect(config.workflow!.preset).toBe(preset);
+      }
+    });
+
+    it('auto preset has unrestricted permissions', () => {
+      expect(WORKFLOW_PRESET_CONFIGS.auto.agents!.permissionModel).toBe('unrestricted');
+    });
+
+    it('approve preset has restricted permissions', () => {
+      expect(WORKFLOW_PRESET_CONFIGS.approve.agents!.permissionModel).toBe('restricted');
+    });
+
+    it('review preset targets stoneforge/review branch', () => {
+      expect(WORKFLOW_PRESET_CONFIGS.review.merge!.targetBranch).toBe('stoneforge/review');
     });
   });
 });
