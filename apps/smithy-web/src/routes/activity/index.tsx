@@ -13,18 +13,21 @@ import { getCurrentBinding, formatKeyBinding } from '../../lib/keyboard';
 import { useActivityStream } from '../../api/hooks/useActivity.js';
 import { useStopAgentSession } from '../../api/hooks/useAgents.js';
 import { useDaemonStatus } from '../../api/hooks/useDaemon.js';
+import { useWorkflowPreset } from '../../api/hooks/useWorkflowPreset.js';
 import {
   SystemStatusBar,
   ActiveAgentsDashboard,
   RecentCompletions,
   CollapsibleActivityFeed,
 } from '../../components/activity/index.js';
+import { PresetSelectionModal } from '../../components/settings/index.js';
 
 export function ActivityPage() {
   const navigate = useNavigate();
   const { isConnected } = useActivityStream('all');
   const { data: daemonStatus } = useDaemonStatus();
   const stopSession = useStopAgentSession();
+  const workflowPreset = useWorkflowPreset();
 
   const handleRefresh = useCallback(() => {
     window.location.reload();
@@ -54,8 +57,18 @@ export function ActivityPage() {
     [stopSession]
   );
 
+  // Show preset selection modal on first load (when no preset is configured)
+  const showPresetModal = !workflowPreset.isLoading && !workflowPreset.isConfigured;
+
   return (
     <div className="space-y-6 animate-fade-in" data-testid="activity-page">
+      {/* First-load preset selection */}
+      {showPresetModal && (
+        <PresetSelectionModal
+          onSelect={workflowPreset.setPreset}
+          onDismiss={() => {/* modal dismisses itself after successful selection */}}
+        />
+      )}
       {/* Page header */}
       <div className="flex flex-col gap-3 @sm:flex-row @sm:items-center @sm:justify-between">
         <div className="flex items-center gap-3">

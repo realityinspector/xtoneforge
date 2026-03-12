@@ -31,6 +31,7 @@ import {
   MessageSquare,
   Terminal,
   AlertCircle,
+  Workflow,
 } from 'lucide-react';
 import { useIsMobile, ShortcutsSection } from '@stoneforge/ui';
 import {
@@ -43,6 +44,8 @@ import { useProviders, useProviderModels } from '../../api/hooks/useAgents';
 import { PROVIDER_LABELS } from '../../lib/providers';
 import { DEFAULT_SHORTCUTS } from '../../lib/keyboard';
 import { useDaemonStatus, useUpdateDaemonConfig } from '../../api/hooks/useDaemon';
+import { useWorkflowPreset } from '../../api/hooks/useWorkflowPreset';
+import { InlinePresetSelector } from '../../components/settings/index.js';
 
 type TabValue = 'preferences' | 'workspace';
 
@@ -515,6 +518,9 @@ function WorkspaceTab() {
 
   return (
     <div className="space-y-6 max-w-2xl" data-testid="settings-workspace">
+      {/* Workflow Preset */}
+      <WorkflowPresetSection />
+
       {/* Git Worktrees */}
       <SettingsSection
         icon={GitBranch}
@@ -700,6 +706,36 @@ function DirectorSection() {
         onChange={(checked) => updateConfig.mutate({ directorInboxForwardingEnabled: checked })}
         testId="settings-director-forwarding"
       />
+    </SettingsSection>
+  );
+}
+
+// ============================================================================
+// Workflow Preset Section
+// ============================================================================
+
+function WorkflowPresetSection() {
+  const { preset, isLoading, error, setPreset } = useWorkflowPreset();
+
+  return (
+    <SettingsSection
+      icon={Workflow}
+      title="Workflow Preset"
+      description="Controls how agents merge code and what permissions they have"
+    >
+      {isLoading ? (
+        <div className="flex items-center gap-2 py-2 text-xs text-[var(--color-text-tertiary)]">
+          <Loader2 className="w-3 h-3 animate-spin" />
+          Loading workflow preset...
+        </div>
+      ) : error ? (
+        <div className="flex items-center gap-2 px-3 py-2 text-xs text-[var(--color-danger-text)] bg-[var(--color-danger-muted)] border border-[var(--color-danger)] rounded-md">
+          <AlertCircle className="w-3.5 h-3.5 flex-shrink-0" />
+          <span>Failed to load workflow preset: {error}</span>
+        </div>
+      ) : (
+        <InlinePresetSelector currentPreset={preset} onSelect={setPreset} />
+      )}
     </SettingsSection>
   );
 }
