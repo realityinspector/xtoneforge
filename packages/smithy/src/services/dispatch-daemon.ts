@@ -3616,7 +3616,25 @@ export class DispatchDaemonImpl implements DispatchDaemon {
             return false;
           }
         }
-        return this.processPersistentAgentMessage(agent, message, item, activeSession);
+
+        // Try the target director first
+        const result = await this.processPersistentAgentMessage(agent, message, item, activeSession);
+        if (result) {
+          return true;
+        }
+
+        // Target director is offline — attempt fallback to another running director
+        const fallbackDirector = await this.agentRegistry.getAvailableDirector();
+        if (fallbackDirector && fallbackDirector.id !== agent.id) {
+          const fallbackSession = this.sessionManager.getActiveSession(asEntityId(fallbackDirector.id));
+          if (fallbackSession) {
+            // Forward to fallback director's session, marking original inbox item as read
+            return this.processPersistentAgentMessage(fallbackDirector, message, item, fallbackSession);
+          }
+        }
+
+        // No fallback available — leave unread until a director comes online
+        return false;
       }
       // Default: leave inbox items unread for manual sf inbox checks
       return false;
