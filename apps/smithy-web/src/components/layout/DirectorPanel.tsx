@@ -33,9 +33,14 @@ import {
   Plus,
   RefreshCw,
   Users,
+  Pickaxe,
+  Mail,
+  Play,
+  Square,
+  RotateCcw,
 } from 'lucide-react';
 import { Tooltip } from '@stoneforge/ui';
-import { useDirectors, useDeleteAgent, useStopAgentSession } from '../../api/hooks/useAgents';
+import { useDirectors, useDeleteAgent, useStopAgentSession, useStartAgentSession } from '../../api/hooks/useAgents';
 import { useAgentInboxCount } from '../../api/hooks/useAgentInbox';
 import { DirectorTabBar } from './DirectorTabBar';
 import { DirectorTabContent } from './DirectorTabContent';
@@ -295,6 +300,7 @@ export function DirectorPanel({ collapsed = false, onToggle, isMaximized = false
   const { directors: rawDirectors, isLoading } = useDirectors();
   const deleteAgentMutation = useDeleteAgent();
   const stopSessionMutation = useStopAgentSession();
+  const startSessionMutation = useStartAgentSession();
 
   // Tab order state
   const [tabOrder, setTabOrder] = useState<string[]>(loadTabOrder);
@@ -334,6 +340,12 @@ export function DirectorPanel({ collapsed = false, onToggle, isMaximized = false
 
   // Collapsed sidebar drag state
   const [collapsedDraggedId, setCollapsedDraggedId] = useState<string | null>(null);
+
+  // Lifted messages queue state (keyed by director ID)
+  const [messagesQueueVisible, setMessagesQueueVisible] = useState<Record<string, boolean>>({});
+
+  // Terminal sendInput callbacks (keyed by director ID)
+  const terminalSendInputRefs = useRef<Record<string, (text: string) => void>>({});
 
   // Persist active tab
   useEffect(() => {
@@ -457,6 +469,59 @@ export function DirectorPanel({ collapsed = false, onToggle, isMaximized = false
     }
     onToggle?.();
   }, [isMaximized, onToggleMaximize, onToggle]);
+
+  // Messages queue toggle for a specific director
+  const handleToggleMessagesQueue = useCallback((directorId: string) => {
+    setMessagesQueueVisible((prev) => ({
+      ...prev,
+      [directorId]: !prev[directorId],
+    }));
+  }, []);
+
+  // Terminal ready callback — stores sendInput for a director
+  const handleTerminalReady = useCallback((directorId: string, sendInput: (text: string) => void) => {
+    terminalSendInputRefs.current[directorId] = sendInput;
+  }, []);
+
+  // Sift backlog for active director
+  const handleSiftBacklog = useCallback(() => {
+    if (!activeDirectorId) return;
+    const sendInput = terminalSendInputRefs.current[activeDirectorId];
+    if (!sendInput) return;
+    sendInput('Use your sift-backlog skill');
+    setTimeout(() => {
+      terminalSendInputRefs.current[activeDirectorId]?.('\r');
+    }, 200);
+  }, [activeDirectorId]);
+
+  // Session controls for active director
+  const handleStartActiveSession = useCallback(async () => {
+    if (!activeDirectorId) return;
+    try {
+      await startSessionMutation.mutateAsync({ agentId: activeDirectorId });
+    } catch (err) {
+      console.error('Failed to start director session:', err);
+    }
+  }, [activeDirectorId, startSessionMutation]);
+
+  const handleStopActiveSession = useCallback(async () => {
+    if (!activeDirectorId) return;
+    try {
+      await stopSessionMutation.mutateAsync({ agentId: activeDirectorId, graceful: true });
+    } catch (err) {
+      console.error('Failed to stop director session:', err);
+    }
+  }, [activeDirectorId, stopSessionMutation]);
+
+  const handleRestartActiveSession = useCallback(async () => {
+    if (!activeDirectorId) return;
+    try {
+      await stopSessionMutation.mutateAsync({ agentId: activeDirectorId, graceful: true });
+      await startSessionMutation.mutateAsync({ agentId: activeDirectorId });
+    } catch (err) {
+      console.error('Failed to restart director session:', err);
+    }
+  }, [activeDirectorId, stopSessionMutation, startSessionMutation]);
 
   // Handle clicking a specific director in collapsed sidebar
   const handleCollapsedDirectorClick = useCallback((directorId: string) => {
@@ -687,53 +752,152 @@ export function DirectorPanel({ collapsed = false, onToggle, isMaximized = false
         />
       )}
 
-      {/* Panel Header — "Directors" label + maximize + collapse (no per-director controls) */}
-      <div className="flex items-center justify-between h-14 px-4 border-b border-[var(--color-border)]">
-        <div className="flex items-center gap-2">
-          <Users className="w-4 h-4 text-[var(--color-text-secondary)]" />
-          <span className="text-sm font-medium text-[var(--color-text)]">Directors</span>
+      {/* Combined header row — tabs (left, scrollable) + active director actions + panel actions (right) */}
+      <div className="flex items-center h-10 border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)]" data-testid="director-panel-header">
+        {/* Left side: scrollable tabs */}
+        <div className="flex-1 min-w-0 overflow-x-auto scrollbar-hide">
           {directors.length > 0 && (
-            <span className="px-1.5 py-0.5 text-xs font-medium rounded-full bg-[var(--color-surface-hover)] text-[var(--color-text-secondary)]">
-              {directors.length}
-            </span>
+            <DirectorTabBar
+              directors={directors}
+              activeDirectorId={activeDirectorId}
+              onSelectDirector={handleSelectDirector}
+              onCreateDirector={handleCreateDirector}
+              onReorder={handleReorder}
+              onDeleteDirector={handleDeleteDirectorRequest}
+              unreadCounts={unreadCounts}
+            />
           )}
         </div>
-        <div className="flex items-center gap-1">
+
+        {/* Right side: active director actions + separator + panel actions */}
+        <div className="flex-shrink-0 flex items-center gap-0.5 px-2">
+          {/* Active director action buttons */}
+          {activeDirectorId && (() => {
+            const activeInfo = directors.find((d) => d.director.id === activeDirectorId);
+            if (!activeInfo) return null;
+            const activeUnread = unreadCounts[activeDirectorId] ?? 0;
+
+            return (
+              <>
+                {/* Sift Backlog Button — only when active director has a session */}
+                {activeInfo.hasActiveSession && (
+                  <Tooltip content="Sift Backlog" side="bottom">
+                    <button
+                      onClick={handleSiftBacklog}
+                      className="p-1 rounded-md text-[var(--color-text-secondary)] hover:text-[var(--color-text)] hover:bg-[var(--color-surface-hover)] transition-colors duration-150"
+                      aria-label="Sift Backlog"
+                      data-testid={`director-sift-backlog-${activeDirectorId}`}
+                    >
+                      <Pickaxe className="w-3.5 h-3.5" />
+                    </button>
+                  </Tooltip>
+                )}
+
+                {/* Messages Queue Toggle */}
+                <Tooltip
+                  content={messagesQueueVisible[activeDirectorId] ? 'Hide pending messages' : 'Show pending messages'}
+                  side="bottom"
+                >
+                  <button
+                    onClick={() => handleToggleMessagesQueue(activeDirectorId)}
+                    className={`relative p-1 rounded-md transition-colors duration-150 ${
+                      messagesQueueVisible[activeDirectorId]
+                        ? 'text-[var(--color-primary)] bg-[var(--color-primary)]/10'
+                        : 'text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)]'
+                    }`}
+                    aria-label={messagesQueueVisible[activeDirectorId] ? 'Hide pending messages' : 'Show pending messages'}
+                    data-testid={`toggle-messages-queue-${activeDirectorId}`}
+                  >
+                    <Mail className="w-3.5 h-3.5" />
+                    {activeUnread > 0 && (
+                      <span className="absolute -top-1 -right-1 flex items-center justify-center min-w-[14px] h-3.5 px-0.5 text-[9px] font-bold rounded-full bg-[var(--color-primary)] text-white">
+                        {activeUnread > 99 ? '99+' : activeUnread}
+                      </span>
+                    )}
+                  </button>
+                </Tooltip>
+
+                {/* Session Controls */}
+                {!activeInfo.hasActiveSession ? (
+                  <Tooltip content="Start Session" side="bottom">
+                    <button
+                      onClick={handleStartActiveSession}
+                      disabled={startSessionMutation.isPending}
+                      className="p-1 rounded-md text-[var(--color-success)] hover:bg-[var(--color-surface-hover)] transition-colors duration-150 disabled:opacity-50"
+                      aria-label="Start Session"
+                      data-testid={`director-start-${activeDirectorId}`}
+                    >
+                      {startSessionMutation.isPending ? (
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Play className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                  </Tooltip>
+                ) : (
+                  <>
+                    <Tooltip content="Restart Session" side="bottom">
+                      <button
+                        onClick={handleRestartActiveSession}
+                        disabled={stopSessionMutation.isPending || startSessionMutation.isPending}
+                        className="p-1 rounded-md text-[var(--color-warning)] hover:bg-[var(--color-surface-hover)] transition-colors duration-150 disabled:opacity-50"
+                        aria-label="Restart Session"
+                        data-testid={`director-restart-${activeDirectorId}`}
+                      >
+                        {(stopSessionMutation.isPending || startSessionMutation.isPending) ? (
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <RotateCcw className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    </Tooltip>
+                    <Tooltip content="Stop Session" side="bottom">
+                      <button
+                        onClick={handleStopActiveSession}
+                        disabled={stopSessionMutation.isPending}
+                        className="p-1 rounded-md text-[var(--color-danger)] hover:bg-[var(--color-surface-hover)] transition-colors duration-150 disabled:opacity-50"
+                        aria-label="Stop Session"
+                        data-testid={`director-stop-${activeDirectorId}`}
+                      >
+                        {stopSessionMutation.isPending ? (
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Square className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    </Tooltip>
+                  </>
+                )}
+              </>
+            );
+          })()}
+
+          {/* Separator */}
+          <div className="w-px h-4 bg-[var(--color-border)] mx-1" />
+
+          {/* Panel actions: maximize + collapse */}
           <Tooltip content={isMaximized ? "Restore Panel" : "Maximize Panel"} side="bottom">
             <button
               onClick={onToggleMaximize}
-              className="p-1.5 rounded-md text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors duration-150"
+              className="p-1 rounded-md text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors duration-150"
               aria-label={isMaximized ? "Restore Panel" : "Maximize Panel"}
               data-testid="director-panel-maximize"
             >
-              {isMaximized ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              {isMaximized ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
             </button>
           </Tooltip>
           <Tooltip content="Collapse Panel" side="left">
             <button
               onClick={handleCollapse}
-              className="p-1.5 rounded-md text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors duration-150"
+              className="p-1 rounded-md text-[var(--color-text-tertiary)] hover:text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-hover)] transition-colors duration-150"
               aria-label="Collapse Director Panel"
               data-testid="director-panel-collapse"
             >
-              <PanelRightClose className="w-4 h-4" />
+              <PanelRightClose className="w-3.5 h-3.5" />
             </button>
           </Tooltip>
         </div>
       </div>
-
-      {/* Tab Bar — shown when there are directors */}
-      {directors.length > 0 && (
-        <DirectorTabBar
-          directors={directors}
-          activeDirectorId={activeDirectorId}
-          onSelectDirector={handleSelectDirector}
-          onCreateDirector={handleCreateDirector}
-          onReorder={handleReorder}
-          onDeleteDirector={handleDeleteDirectorRequest}
-          unreadCounts={unreadCounts}
-        />
-      )}
 
       {/* Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -794,7 +958,8 @@ export function DirectorPanel({ collapsed = false, onToggle, isMaximized = false
               key={info.director.id}
               info={info}
               isVisible={info.director.id === activeDirectorId}
-              unreadCount={unreadCounts[info.director.id] ?? 0}
+              showMessagesQueue={!!messagesQueueVisible[info.director.id]}
+              onTerminalReady={(sendInput) => handleTerminalReady(info.director.id, sendInput)}
             />
           ))
         )}

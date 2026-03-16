@@ -296,7 +296,7 @@ export function DirectorTabBar({
 
   return (
     <div
-      className="flex items-center gap-0.5 px-2 py-1 border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)] overflow-x-auto scrollbar-hide"
+      className="flex items-center gap-0.5 px-2 py-1 bg-[var(--color-bg-secondary)]"
       data-testid="director-tab-bar"
       role="tablist"
       aria-label="Director tabs"
