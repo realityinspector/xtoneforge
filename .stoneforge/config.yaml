@@ -1,5 +1,5 @@
-# Stoneforge Configuration
-
+# XTONEFORGE Workspace Configuration
+name: xtoneforge
 actor: el-1k0b
 database: stoneforge.db
 sync:
@@ -12,3 +12,5 @@ playbooks:
     - playbooks
 identity:
   mode: soft
+cross_messaging:
+  enabled: true
