@@ -335,7 +335,7 @@ function LoginGate({ onSuccess }: { onSuccess: () => void }) {
   return (
     <div className="app">
       <form className="auth-gate" onSubmit={submit}>
-        <h1>{"\u2692\uFE0F"} Stoneforge Feed</h1>
+        <h1><span style={{ color: "#7C3AED", fontWeight: 800 }}>X</span>TONEFORGE Feed</h1>
         <input
           type="password"
           className="auth-input"
@@ -476,7 +476,7 @@ export function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>{"\u2692\uFE0F"} Feed</h1>
+        <h1><span style={{ color: "#7C3AED", fontWeight: 800 }}>X</span>TONEFORGE</h1>
         <div className="agent-tabs">
           <button
             className={!filterAgent && !filterCrossTalk ? "active" : ""}
