@@ -233,6 +233,11 @@ cmd_start() {
   # "start feed" is a shortcut
   if [ "$target" = "feed" ]; then
     cmd_feed_start
+    # Auto-start sync if sync.conf exists
+    local sync_config="$CONFIG_DIR/sync.conf"
+    if [ -f "$sync_config" ] && ! is_running "sync"; then
+      cmd_sync_start
+    fi
     return
   fi
 
@@ -241,6 +246,14 @@ cmd_start() {
     echo "Run: stoneforge-boss register <name> <script> <port>"
     echo "Or:  stoneforge-boss init"
     return
+  fi
+
+  # "start all" also starts broker, feed, and sync
+  if [ "$target" = "all" ]; then
+    # Start broker if any workspace has cross_messaging enabled
+    if ! is_running "broker"; then
+      cmd_broker_start 2>/dev/null || true
+    fi
   fi
 
   for ws in "${WORKSPACES[@]}"; do
@@ -290,6 +303,16 @@ cmd_start() {
       rm -f "$(pid_file "$name")" "$(port_file "$name")"
     fi
   done
+
+  # "start all" also starts feed and sync
+  if [ "$target" = "all" ]; then
+    cmd_feed_start
+    # Auto-start sync if sync.conf exists
+    local sync_config="$CONFIG_DIR/sync.conf"
+    if [ -f "$sync_config" ] && ! is_running "sync"; then
+      cmd_sync_start
+    fi
+  fi
 }
 
 cmd_stop() {
@@ -298,6 +321,7 @@ cmd_stop() {
   # "stop feed" shortcut
   if [ "$target" = "feed" ]; then
     cmd_feed_stop
+    cmd_sync_stop
     return
   fi
 
@@ -307,10 +331,11 @@ cmd_stop() {
     return
   fi
 
-  # stop all includes feed and sync
+  # stop all includes feed, sync, and broker
   if [ "$target" = "all" ]; then
     cmd_feed_stop
     cmd_sync_stop
+    cmd_broker_stop
   fi
 
   for ws in "${WORKSPACES[@]}"; do
