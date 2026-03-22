@@ -11,6 +11,23 @@
  * - RateLimitTracker - In-memory rate limit state tracking for executables
  */
 
+// Peer broker (cross-workspace messaging broker)
+export {
+  type PeerInfo,
+  type PeerMessage,
+  type PeerBrokerOptions,
+  type PeerBrokerHandle,
+  startPeerBroker,
+} from './peer-broker.js';
+
+// Peer bridge (cross-workspace messaging client)
+export {
+  type PeerBridge,
+  type PeerBridgeConfig,
+  PeerBridgeImpl,
+  createPeerBridge,
+} from './peer-bridge.js';
+
 // Agent registry (TB-O7, TB-O7a)
 // Note: AgentEntity, isAgentEntity, and getAgentMetadata are exported from api/index.js
 // to avoid duplicate export conflicts

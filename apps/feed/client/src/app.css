@@ -436,6 +436,30 @@ pre { font-family: var(--mono); white-space: pre-wrap; word-break: break-word; m
 .auth-btn:disabled { opacity: 0.4; cursor: default; }
 .auth-error { color: #ef4444; font-size: 14px; margin-top: 8px; }
 
+/* === Cross-Workspace Posts === */
+.post-card.cross-workspace {
+  border-left: 3px solid #a855f7;
+  background: rgba(168, 85, 247, 0.04);
+}
+.cross-workspace-badge {
+  font-size: 11px;
+  color: #a855f7;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin-bottom: 6px;
+  padding-left: 48px;
+}
+.cross-talk-content pre {
+  border-left: 2px solid rgba(168, 85, 247, 0.3);
+  padding-left: 10px;
+}
+.cross-talk-tab {
+  color: #a855f7 !important;
+}
+.cross-talk-tab.active {
+  border-color: #a855f7 !important;
+}
+
 /* === Scrollbar === */
 ::-webkit-scrollbar { width: 0; }
 

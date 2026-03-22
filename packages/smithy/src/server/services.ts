@@ -63,6 +63,7 @@ import {
   createPermissionHook,
 } from '../index.js';
 import { createSyncEngine, createConfiguredProviderRegistry } from '@stoneforge/quarry';
+import { createPeerBridge, type PeerBridge } from '../services/peer-bridge.js';
 import { attachSessionEventSaver } from './routes/sessions.js';
 import { notifySSEClientsOfNewSession } from './routes/events.js';
 import { DB_PATH as DEFAULT_DB_PATH, PROJECT_ROOT as DEFAULT_PROJECT_ROOT, getClaudePath } from './config.js';
@@ -106,6 +107,7 @@ export interface Services {
   demoModeService: DemoModeService;
   approvalService: ApprovalService;
   storageBackend: StorageBackend;
+  peerBridge: PeerBridge | undefined;
 }
 
 export async function initializeServices(options: ServicesOptions = {}): Promise<Services> {
@@ -535,6 +537,21 @@ export async function initializeServices(options: ServicesOptions = {}): Promise
     }
   }
 
+  // PeerBridge — only instantiate when cross-workspace messaging is enabled
+  let peerBridge: PeerBridge | undefined;
+  if (config.crossMessaging?.enabled) {
+    peerBridge = createPeerBridge({
+      workspaceName: config.name ?? 'unnamed',
+      workspacePort: 0,
+      brokerPort: config.crossMessaging.brokerPort,
+      api,
+      inboxService,
+      projectRoot,
+      actorId: config.actor,
+    });
+    logger.info('Peer bridge created (will start when server starts)');
+  }
+
   // Create demo mode service
   const demoModeService = createDemoModeService({
     agentRegistry,
@@ -586,5 +603,6 @@ export async function initializeServices(options: ServicesOptions = {}): Promise
     demoModeService,
     approvalService,
     storageBackend,
+    peerBridge,
   };
 }

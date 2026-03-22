@@ -53,6 +53,7 @@ export type {
   MergeConfig,
   WorkflowConfig,
   AgentsConfig,
+  CrossMessagingConfig,
 } from './types.js';
 
 export {
@@ -79,6 +80,7 @@ export {
   DEFAULT_MERGE_CONFIG,
   DEFAULT_WORKFLOW_CONFIG,
   DEFAULT_AGENTS_CONFIG,
+  DEFAULT_CROSS_MESSAGING_CONFIG,
   getDefaultConfig,
   ONE_SECOND,
   ONE_MINUTE,

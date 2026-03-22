@@ -357,6 +357,10 @@ function createTrackedDefaults(): TrackedConfiguration {
       permissionModel: { value: DEFAULT_CONFIG.agents.permissionModel, source: ConfigSourceEnum.DEFAULT },
       allowedBashCommands: { value: DEFAULT_CONFIG.agents.allowedBashCommands, source: ConfigSourceEnum.DEFAULT },
     },
+    crossMessaging: {
+      enabled: { value: DEFAULT_CONFIG.crossMessaging.enabled, source: ConfigSourceEnum.DEFAULT },
+      brokerPort: { value: DEFAULT_CONFIG.crossMessaging.brokerPort, source: ConfigSourceEnum.DEFAULT },
+    },
   };
 }
 
@@ -453,6 +457,12 @@ function mergeTrackedConfig(
   }
   if (partial.agents?.allowedBashCommands !== undefined) {
     result.agents = { ...result.agents, allowedBashCommands: { value: partial.agents.allowedBashCommands, source } };
+  }
+  if (partial.crossMessaging?.enabled !== undefined) {
+    result.crossMessaging = { ...result.crossMessaging, enabled: { value: partial.crossMessaging.enabled, source } };
+  }
+  if (partial.crossMessaging?.brokerPort !== undefined) {
+    result.crossMessaging = { ...result.crossMessaging, brokerPort: { value: partial.crossMessaging.brokerPort, source } };
   }
 
   return result;

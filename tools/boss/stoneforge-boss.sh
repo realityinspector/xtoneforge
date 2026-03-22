@@ -426,6 +426,32 @@ cmd_logs() {
   fi
 }
 
+cmd_open() {
+  local target="${1:-all}"
+
+  local opened=0
+  for ws in "${WORKSPACES[@]}"; do
+    local name
+    name=$(get_field "$ws" 1)
+
+    [ "$target" != "all" ] && [ "$target" != "$name" ] && continue
+
+    if is_running "$name"; then
+      local port
+      port=$(get_port "$name")
+      echo -e "${CYAN}[$name]${NC} Opening http://localhost:$port"
+      open "http://localhost:$port" 2>/dev/null || xdg-open "http://localhost:$port" 2>/dev/null || echo "  Could not open browser"
+      opened=$((opened + 1))
+    else
+      echo -e "${DIM}[$name]${NC} Not running — skipped"
+    fi
+  done
+
+  if [ "$opened" -eq 0 ]; then
+    echo -e "${YELLOW}No running workspaces to open.${NC}"
+  fi
+}
+
 cmd_dashboard() {
   # Live-updating status display
   echo -e "${BOLD}Stoneforge Boss — Live Dashboard${NC} (Ctrl+C to exit)"
@@ -655,6 +681,71 @@ cmd_feed_stop() {
 
   rm -f "$(pid_file "feed")" "$(port_file "feed")"
   echo -e "${RED}[feed]${NC} Stopped"
+}
+
+# ---- Peer Broker ----
+# Lightweight HTTP broker for cross-workspace peer messaging.
+# One broker per machine, workspaces register as peers.
+
+BROKER_DEFAULT_PORT=7899
+
+cmd_broker_start() {
+  if is_running "broker"; then
+    echo -e "${YELLOW}[broker]${NC} Already running (PID $(get_pid "broker"), port $(get_port "broker"))"
+    return
+  fi
+
+  # Find the peer-broker script in the smithy package
+  local broker_script
+  broker_script="$(cd "$BOSS_SCRIPT_DIR/../../packages/smithy/dist/services" 2>/dev/null && pwd)/peer-broker.js"
+  if [ ! -f "$broker_script" ]; then
+    # Try src (for dev mode with ts-node/tsx)
+    broker_script="$(cd "$BOSS_SCRIPT_DIR/../../packages/smithy/src/services" 2>/dev/null && pwd)/peer-broker.ts"
+  fi
+
+  if [ ! -f "$broker_script" ]; then
+    echo -e "${RED}[broker]${NC} peer-broker script not found. Build smithy first: pnpm build"
+    return
+  fi
+
+  local port="${BROKER_DEFAULT_PORT}"
+  local lf
+  lf=$(log_file "broker")
+
+  # Use node for .js, npx tsx for .ts
+  if [[ "$broker_script" == *.ts ]]; then
+    STONEFORGE_PEERS_PORT="$port" nohup npx tsx "$broker_script" > "$lf" 2>&1 &
+  else
+    STONEFORGE_PEERS_PORT="$port" nohup node "$broker_script" > "$lf" 2>&1 &
+  fi
+  local pid=$!
+
+  echo "$pid" > "$(pid_file "broker")"
+  echo "$port" > "$(port_file "broker")"
+  echo -e "${GREEN}[broker]${NC} Started (PID $pid, port $port)"
+}
+
+cmd_broker_stop() {
+  if ! is_running "broker"; then
+    echo -e "${DIM}[broker]${NC} Not running"
+    rm -f "$(pid_file "broker")" "$(port_file "broker")"
+    return
+  fi
+
+  local pid
+  pid=$(get_pid "broker")
+  kill "$pid" 2>/dev/null
+  local i=0
+  while kill -0 "$pid" 2>/dev/null && [ $i -lt 10 ]; do
+    sleep 0.3
+    i=$((i + 1))
+  done
+  if kill -0 "$pid" 2>/dev/null; then
+    kill -9 "$pid" 2>/dev/null || true
+  fi
+
+  rm -f "$(pid_file "broker")" "$(port_file "broker")"
+  echo -e "${RED}[broker]${NC} Stopped"
 }
 
 # ---- Sync Service ----
@@ -1449,6 +1540,14 @@ case "${1:-help}" in
       *) echo "Usage: stoneforge-boss feed [start|stop|restart]" ;;
     esac
     ;;
+  broker)
+    case "${2:-start}" in
+      start) cmd_broker_start ;;
+      stop)  cmd_broker_stop ;;
+      restart) cmd_broker_stop; sleep 1; cmd_broker_start ;;
+      *) echo "Usage: stoneforge-boss broker [start|stop|restart]" ;;
+    esac
+    ;;
   sync)
     case "${2:-}" in
       start) cmd_sync_start "${3:-}" "${4:-}" "${5:-5}" ;;
@@ -1456,6 +1555,9 @@ case "${1:-help}" in
       *) echo "Usage: stoneforge-boss sync [start <url> <token> [interval]|stop]" ;;
     esac
     ;;
+
+  # Open in browser
+  open)      cmd_open "${2:-all}" ;;
 
   # Monitor
   dashboard) cmd_dashboard ;;

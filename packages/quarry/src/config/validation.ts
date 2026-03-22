@@ -603,6 +603,30 @@ export function validateConfiguration(config: unknown): Configuration {
     }
   }
 
+  // Validate crossMessaging
+  if (typeof obj.crossMessaging !== 'object' || obj.crossMessaging === null) {
+    throw new ValidationError(
+      'Configuration must include crossMessaging object',
+      ErrorCode.MISSING_REQUIRED_FIELD,
+      { field: 'crossMessaging' }
+    );
+  }
+  const crossMessaging = obj.crossMessaging as Record<string, unknown>;
+  if (typeof crossMessaging.enabled !== 'boolean') {
+    throw new ValidationError(
+      'crossMessaging.enabled must be a boolean',
+      ErrorCode.INVALID_INPUT,
+      { field: 'crossMessaging.enabled', value: crossMessaging.enabled, expected: 'boolean' }
+    );
+  }
+  if (typeof crossMessaging.brokerPort !== 'number' || crossMessaging.brokerPort < 1 || crossMessaging.brokerPort > 65535) {
+    throw new ValidationError(
+      'crossMessaging.brokerPort must be a number between 1 and 65535',
+      ErrorCode.INVALID_INPUT,
+      { field: 'crossMessaging.brokerPort', value: crossMessaging.brokerPort, expected: 'number (1-65535)' }
+    );
+  }
+
   // Validate demoMode
   if (typeof obj.demoMode !== 'boolean') {
     throw new ValidationError(
@@ -796,6 +820,23 @@ export function validatePartialConfiguration(config: PartialConfiguration): void
           { field: `agents.allowedBashCommands[${i}]`, value: config.agents.allowedBashCommands[i], expected: 'string' }
         );
       }
+    }
+  }
+  // Validate crossMessaging fields
+  if (config.crossMessaging?.enabled !== undefined && typeof config.crossMessaging.enabled !== 'boolean') {
+    throw new ValidationError(
+      'crossMessaging.enabled must be a boolean',
+      ErrorCode.INVALID_INPUT,
+      { field: 'crossMessaging.enabled', value: config.crossMessaging.enabled, expected: 'boolean' }
+    );
+  }
+  if (config.crossMessaging?.brokerPort !== undefined) {
+    if (typeof config.crossMessaging.brokerPort !== 'number' || config.crossMessaging.brokerPort < 1 || config.crossMessaging.brokerPort > 65535) {
+      throw new ValidationError(
+        'crossMessaging.brokerPort must be a number between 1 and 65535',
+        ErrorCode.INVALID_INPUT,
+        { field: 'crossMessaging.brokerPort', value: config.crossMessaging.brokerPort, expected: 'number (1-65535)' }
+      );
     }
   }
   if (config.demoMode !== undefined && typeof config.demoMode !== 'boolean') {

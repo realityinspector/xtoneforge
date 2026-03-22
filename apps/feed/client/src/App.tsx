@@ -106,11 +106,18 @@ function PostCard({
     )
   );
 
+  const isCrossTalk = post.source_type === "cross-workspace";
+
   return (
-    <article className="post-card">
+    <article className={`post-card ${isCrossTalk ? "cross-workspace" : ""}`}>
+      {isCrossTalk && (
+        <div className="cross-workspace-badge">
+          {"\u{1F310}"} cross-workspace
+        </div>
+      )}
       <div className="post-header">
         <button className="avatar" onClick={() => onAgentClick(post.agent_id)}>
-          {post.agent_avatar}
+          {post.agent_avatar || (isCrossTalk ? "\u{1F310}" : "")}
         </button>
         <div className="post-meta">
           <button className="agent-name" onClick={() => onAgentClick(post.agent_id)}>
@@ -118,15 +125,15 @@ function PostCard({
           </button>
           <span
             className="role-badge"
-            style={{ color: ROLE_COLORS[post.agent_role] || "#6b7280" }}
+            style={{ color: isCrossTalk ? "#a855f7" : (ROLE_COLORS[post.agent_role] || "#6b7280") }}
           >
-            {post.agent_role}
+            {isCrossTalk ? "cross-talk" : post.agent_role}
           </span>
           <span className="timestamp">{timeAgo(post.created_at)}</span>
         </div>
       </div>
 
-      <div className={`post-content ${post.source_type === "tool" ? "tool-output" : ""}`}>
+      <div className={`post-content ${post.source_type === "tool" ? "tool-output" : ""} ${isCrossTalk ? "cross-talk-content" : ""}`}>
         <pre>{rendered}</pre>
         {needsTruncation && !expanded && (
           <button className="read-more" onClick={() => setExpanded(true)}>
@@ -356,6 +363,7 @@ export function App() {
   const [authed, setAuthed] = useState<boolean | null>(null); // null = checking
   const [commentPostId, setCommentPostId] = useState<string | null>(null);
   const [filterAgent, setFilterAgent] = useState<string | null>(null);
+  const [filterCrossTalk, setFilterCrossTalk] = useState(false);
   const observerRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -370,7 +378,7 @@ export function App() {
         setAgents(data.agents || []);
       }
     });
-  }, [filterAgent]);
+  }, [filterAgent, filterCrossTalk]);
 
   // WebSocket for real-time updates — cookie auth, no token in URL
   useEffect(() => {
@@ -401,7 +409,7 @@ export function App() {
     };
 
     return () => ws.close();
-  }, [filterAgent]);
+  }, [filterAgent, filterCrossTalk]);
 
   const loadMore = useCallback(async () => {
     if (loading) return;
@@ -471,16 +479,22 @@ export function App() {
         <h1>{"\u2692\uFE0F"} Feed</h1>
         <div className="agent-tabs">
           <button
-            className={!filterAgent ? "active" : ""}
-            onClick={() => { setFilterAgent(null); setCursor(null); }}
+            className={!filterAgent && !filterCrossTalk ? "active" : ""}
+            onClick={() => { setFilterAgent(null); setFilterCrossTalk(false); setCursor(null); }}
           >
             All
+          </button>
+          <button
+            className={filterCrossTalk ? "active cross-talk-tab" : "cross-talk-tab"}
+            onClick={() => { setFilterAgent(null); setFilterCrossTalk(true); setCursor(null); }}
+          >
+            {"\u{1F310}"} Cross-Talk
           </button>
           {agents.map((a) => (
             <button
               key={a.id}
               className={filterAgent === a.id ? "active" : ""}
-              onClick={() => { setFilterAgent(a.id); setCursor(null); }}
+              onClick={() => { setFilterAgent(a.id); setFilterCrossTalk(false); setCursor(null); }}
             >
               {a.name}
             </button>
@@ -489,7 +503,7 @@ export function App() {
       </header>
 
       <main className="feed">
-        {posts.map((post) => (
+        {(filterCrossTalk ? posts.filter(p => p.source_type === "cross-workspace") : posts).map((post) => (
           <PostCard
             key={post.id}
             post={post}

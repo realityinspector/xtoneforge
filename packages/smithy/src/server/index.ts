@@ -34,6 +34,7 @@ import {
   createDiagnosticsRoutes,
   createExternalSyncRoutes,
   createApprovalRoutes,
+  createPeersRoutes,
   markDaemonAsServerManaged,
 } from './routes/index.js';
 // Shared collaborate routes
@@ -152,6 +153,7 @@ export async function startSmithyServer(options: SmithyServerOptions = {}): Prom
   app.route('/', createDiagnosticsRoutes(services));
   app.route('/', createExternalSyncRoutes(services));
   app.route('/', createApprovalRoutes(services));
+  app.route('/', createPeersRoutes(services));
 
   app.route('/', createElementsRoutes(collaborateServices));
   app.route('/', createEntityRoutes(collaborateServices));
@@ -249,6 +251,13 @@ export async function startSmithyServer(options: SmithyServerOptions = {}): Prom
       logger.error('Failed to start external sync daemon:', err);
     });
     logger.info('External sync daemon auto-started');
+  }
+
+  // Conditionally start peer bridge for cross-workspace messaging
+  if (services.peerBridge) {
+    services.peerBridge.start().catch((err: Error) => {
+      logger.warn('Peer bridge failed to start:', err.message);
+    });
   }
 
   return { services, port: actualPort };

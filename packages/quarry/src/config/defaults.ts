@@ -6,7 +6,7 @@
  */
 
 import { IdentityMode } from '../systems/identity.js';
-import type { Configuration, SyncConfig, PlaybookConfig, TombstoneConfig, IdentityConfigSection, PluginsConfig, ExternalSyncConfig, MergeConfig, WorkflowConfig, AgentsConfig } from './types.js';
+import type { Configuration, SyncConfig, PlaybookConfig, TombstoneConfig, IdentityConfigSection, PluginsConfig, ExternalSyncConfig, MergeConfig, WorkflowConfig, AgentsConfig, CrossMessagingConfig } from './types.js';
 
 // ============================================================================
 // Time Constants (in milliseconds)
@@ -133,6 +133,14 @@ export const DEFAULT_AGENTS_CONFIG: AgentsConfig = {
 };
 
 /**
+ * Default cross-workspace messaging configuration
+ */
+export const DEFAULT_CROSS_MESSAGING_CONFIG: CrossMessagingConfig = {
+  enabled: false,
+  brokerPort: 7899,
+};
+
+/**
  * Complete default configuration
  */
 export const DEFAULT_CONFIG: Configuration = {
@@ -150,6 +158,7 @@ export const DEFAULT_CONFIG: Configuration = {
   merge: DEFAULT_MERGE_CONFIG,
   workflow: DEFAULT_WORKFLOW_CONFIG,
   agents: DEFAULT_AGENTS_CONFIG,
+  crossMessaging: DEFAULT_CROSS_MESSAGING_CONFIG,
 };
 
 // ============================================================================
@@ -216,5 +225,6 @@ export function getDefaultConfig(): Configuration {
     merge: { ...DEFAULT_MERGE_CONFIG },
     workflow: { ...DEFAULT_WORKFLOW_CONFIG },
     agents: { ...DEFAULT_AGENTS_CONFIG, allowedBashCommands: [...DEFAULT_AGENTS_CONFIG.allowedBashCommands] },
+    crossMessaging: { ...DEFAULT_CROSS_MESSAGING_CONFIG },
   };
 }

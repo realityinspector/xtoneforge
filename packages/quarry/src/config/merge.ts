@@ -120,6 +120,10 @@ export function mergeConfiguration(
       permissionModel: partial.agents?.permissionModel !== undefined ? partial.agents.permissionModel : base.agents.permissionModel,
       allowedBashCommands: partial.agents?.allowedBashCommands !== undefined ? partial.agents.allowedBashCommands : base.agents.allowedBashCommands,
     },
+    crossMessaging: {
+      enabled: partial.crossMessaging?.enabled !== undefined ? partial.crossMessaging.enabled : base.crossMessaging.enabled,
+      brokerPort: partial.crossMessaging?.brokerPort !== undefined ? partial.crossMessaging.brokerPort : base.crossMessaging.brokerPort,
+    },
   };
   return result;
 }
@@ -211,6 +215,10 @@ export function cloneConfiguration(config: Configuration): Configuration {
     agents: {
       permissionModel: config.agents.permissionModel,
       allowedBashCommands: config.agents.allowedBashCommands,
+    },
+    crossMessaging: {
+      enabled: config.crossMessaging.enabled,
+      brokerPort: config.crossMessaging.brokerPort,
     },
   };
 }
@@ -359,6 +367,18 @@ export function diffConfigurations(
     diff.agents = agentsDiff;
   }
 
+  // CrossMessaging diff
+  const crossMsgDiff: Partial<import('./types.js').CrossMessagingConfig> = {};
+  if (a.crossMessaging.enabled !== b.crossMessaging.enabled) {
+    crossMsgDiff.enabled = b.crossMessaging.enabled;
+  }
+  if (a.crossMessaging.brokerPort !== b.crossMessaging.brokerPort) {
+    crossMsgDiff.brokerPort = b.crossMessaging.brokerPort;
+  }
+  if (Object.keys(crossMsgDiff).length > 0) {
+    diff.crossMessaging = crossMsgDiff;
+  }
+
   return diff;
 }
 
@@ -396,6 +416,8 @@ export function configurationsEqual(a: Configuration, b: Configuration): boolean
     a.merge.requireApproval === b.merge.requireApproval &&
     a.workflow.preset === b.workflow.preset &&
     a.agents.permissionModel === b.agents.permissionModel &&
-    JSON.stringify(a.agents.allowedBashCommands) === JSON.stringify(b.agents.allowedBashCommands)
+    JSON.stringify(a.agents.allowedBashCommands) === JSON.stringify(b.agents.allowedBashCommands) &&
+    a.crossMessaging.enabled === b.crossMessaging.enabled &&
+    a.crossMessaging.brokerPort === b.crossMessaging.brokerPort
   );
 }

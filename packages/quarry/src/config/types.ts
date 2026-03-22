@@ -79,6 +79,16 @@ export interface IdentityConfigSection {
 }
 
 /**
+ * Cross-workspace messaging configuration
+ */
+export interface CrossMessagingConfig {
+  /** Enable cross-workspace peer messaging (default: false) */
+  enabled: boolean;
+  /** Broker HTTP port (default: 7899) */
+  brokerPort: number;
+}
+
+/**
  * Conflict resolution strategy for external sync
  */
 export type ExternalSyncConflictStrategy = 'last_write_wins' | 'local_wins' | 'remote_wins' | 'manual';
@@ -230,6 +240,8 @@ export interface Configuration {
   workflow: WorkflowConfig;
   /** Agents settings */
   agents: AgentsConfig;
+  /** Cross-workspace messaging settings */
+  crossMessaging: CrossMessagingConfig;
 }
 
 /**
@@ -250,6 +262,7 @@ export type PartialConfiguration = {
   merge?: Partial<MergeConfig>;
   workflow?: Partial<WorkflowConfig>;
   agents?: Partial<AgentsConfig>;
+  crossMessaging?: Partial<CrossMessagingConfig>;
 };
 
 // ============================================================================
@@ -332,6 +345,10 @@ export interface TrackedConfiguration {
     permissionModel: TrackedValue<AgentPermissionModel>;
     allowedBashCommands: TrackedValue<string[]>;
   };
+  crossMessaging: {
+    enabled: TrackedValue<boolean>;
+    brokerPort: TrackedValue<number>;
+  };
 }
 
 // ============================================================================
@@ -388,6 +405,10 @@ export interface YamlConfigFile {
   agents?: {
     permission_model?: string;
     allowed_bash_commands?: string[];
+  };
+  cross_messaging?: {
+    enabled?: boolean;
+    broker_port?: number;
   };
 }
 
@@ -499,6 +520,8 @@ export const VALID_CONFIG_PATHS = [
   'workflow.preset',
   'agents.permissionModel',
   'agents.allowedBashCommands',
+  'crossMessaging.enabled',
+  'crossMessaging.brokerPort',
 ] as const;
 
 /**
@@ -545,4 +568,6 @@ export interface ConfigPathTypes {
   'workflow.preset': WorkflowPreset | null;
   'agents.permissionModel': AgentPermissionModel;
   'agents.allowedBashCommands': string[];
+  'crossMessaging.enabled': boolean;
+  'crossMessaging.brokerPort': number;
 }

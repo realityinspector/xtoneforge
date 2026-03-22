@@ -322,6 +322,17 @@ export function convertYamlToConfig(yamlConfig: YamlConfigFile): PartialConfigur
     }
   }
 
+  // Cross-workspace messaging section
+  if (yamlConfig.cross_messaging) {
+    result.crossMessaging = {};
+    if (yamlConfig.cross_messaging.enabled !== undefined) {
+      result.crossMessaging.enabled = yamlConfig.cross_messaging.enabled;
+    }
+    if (yamlConfig.cross_messaging.broker_port !== undefined) {
+      result.crossMessaging.brokerPort = yamlConfig.cross_messaging.broker_port;
+    }
+  }
+
   // External sync section
   if (yamlConfig.external_sync) {
     result.externalSync = {};
@@ -532,6 +543,20 @@ export function convertConfigToYaml(config: Configuration | PartialConfiguration
     }
   }
 
+  // Cross-workspace messaging section
+  if (config.crossMessaging) {
+    const cm: NonNullable<YamlConfigFile['cross_messaging']> = {};
+    if (config.crossMessaging.enabled !== undefined) {
+      cm.enabled = config.crossMessaging.enabled;
+    }
+    if (config.crossMessaging.brokerPort !== undefined) {
+      cm.broker_port = config.crossMessaging.brokerPort;
+    }
+    if (Object.keys(cm).length > 0) {
+      result.cross_messaging = cm;
+    }
+  }
+
   // External sync section
   if (config.externalSync) {
     const es: NonNullable<YamlConfigFile['external_sync']> = {};
@@ -629,6 +654,7 @@ export function updateConfigFile(
     merge: updates.merge ? { ...existing.merge, ...updates.merge } : existing.merge,
     workflow: updates.workflow ? { ...existing.workflow, ...updates.workflow } : existing.workflow,
     agents: updates.agents ? { ...existing.agents, ...updates.agents } : existing.agents,
+    crossMessaging: updates.crossMessaging ? { ...existing.crossMessaging, ...updates.crossMessaging } : existing.crossMessaging,
   };
 
   writeConfigFile(filePath, merged);
