@@ -1,9 +1,9 @@
 {
-  "name": "stoneforge",
+  "name": "xtoneforge",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Stoneforge Agent Orchestration Platform - Monorepo",
+  "description": "XTONEFORGE Agent Orchestration Platform - Monorepo",
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
@@ -22,7 +22,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/stoneforge-ai/stoneforge.git"
+    "url": "git+https://github.com/realityinspector/xtoneforge.git"
   },
   "author": "Stoneforge",
   "license": "Apache-2.0",

@@ -2,7 +2,7 @@
   "name": "@stoneforge/feed",
   "version": "0.1.0",
   "private": true,
-  "description": "Social media feed relay for Stoneforge agent orchestration",
+  "description": "Social media feed relay for XTONEFORGE agent orchestration",
   "scripts": {
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
     "dev:server": "cd server && npx tsx watch src/index.ts",
