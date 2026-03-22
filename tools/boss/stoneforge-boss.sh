@@ -97,6 +97,47 @@ get_port() {
   [ -f "$pf" ] && cat "$pf" || echo ""
 }
 
+# Derive the workspace root directory from its start script path.
+# Walks up from the script's directory looking for .stoneforge/config.yaml.
+workspace_root_from_script() {
+  local script_path="$1"
+  local dir
+  dir="$(cd "$(dirname "$script_path")" 2>/dev/null && pwd)" || return 1
+  while [ "$dir" != "/" ]; do
+    if [ -f "$dir/.stoneforge/config.yaml" ]; then
+      echo "$dir"
+      return 0
+    fi
+    dir="$(dirname "$dir")"
+  done
+  return 1
+}
+
+# Check whether any registered workspace has cross_messaging.enabled set to
+# true in its .stoneforge/config.yaml.  Returns 0 (true) if at least one does.
+any_workspace_cross_messaging() {
+  for ws in "${WORKSPACES[@]}"; do
+    local script
+    script=$(get_field "$ws" 2)
+    local root
+    root=$(workspace_root_from_script "$script") || continue
+    local cfg="$root/.stoneforge/config.yaml"
+    if [ -f "$cfg" ]; then
+      # Check that enabled: true appears under the cross_messaging section
+      # (reset when a new top-level key is encountered)
+      if awk '
+        /^[a-zA-Z_]/ && !/^cross_messaging:/ { found=0 }
+        /^cross_messaging:/                    { found=1 }
+        found && /^[[:space:]]+enabled:[[:space:]]*true/ { r=1; exit }
+        END { exit !r }
+      ' "$cfg" 2>/dev/null; then
+        return 0
+      fi
+    fi
+  done
+  return 1
+}
+
 port_in_use() {
   lsof -iTCP:"$1" -sTCP:LISTEN -t >/dev/null 2>&1
 }
@@ -248,10 +289,11 @@ cmd_start() {
     return
   fi
 
-  # "start all" also starts broker, feed, and sync
+  # "start all" also starts broker (when needed), feed, and sync
   if [ "$target" = "all" ]; then
-    # Start broker if any workspace has cross_messaging enabled
-    if ! is_running "broker"; then
+    # Auto-start broker only if at least one workspace has cross_messaging enabled
+    if ! is_running "broker" && any_workspace_cross_messaging; then
+      echo -e "${CYAN}[broker]${NC} Cross-messaging detected — auto-starting broker"
       cmd_broker_start 2>/dev/null || true
     fi
   fi
