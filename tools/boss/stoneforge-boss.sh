@@ -60,7 +60,7 @@ safe_read_conf() {
 
 # Check if Docker (with compose) is available
 has_docker() {
-  command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1
+  command -v docker >/dev/null 2>&1 && timeout 3 docker info >/dev/null 2>&1
 }
 
 get_field() { echo "$1" | cut -d'|' -f"$2"; }
@@ -651,7 +651,7 @@ cmd_feed_start() {
   lf=$(log_file "feed")
 
   if [ -n "$sf_url" ]; then
-    nohup "$FEED_SCRIPT" --port "$port" --stoneforge-url "$sf_url" > "$lf" 2>&1 &
+    STONEFORGE_URL="$sf_url" SYNC_MODE=true nohup "$FEED_SCRIPT" --port "$port" > "$lf" 2>&1 &
     local mode="connected to $sf_url"
   else
     nohup "$FEED_SCRIPT" --port "$port" > "$lf" 2>&1 &
