@@ -57,7 +57,8 @@ import { shouldDaemonAutoStart, saveDaemonState } from './daemon-state.js';
 import { createLspManager } from './services/lsp-manager.js';
 import { createLspRoutes } from './routes/lsp.js';
 import { initializeBroadcaster } from '@stoneforge/shared-routes';
-import { registerStaticMiddleware } from './static.js';
+import { registerStaticMiddleware, registerDashboardMiddleware } from './static.js';
+import { createFeedProxyRoutes } from './feed-proxy.js';
 
 const logger = createLogger('orchestrator');
 
@@ -67,6 +68,10 @@ export interface SmithyServerOptions {
   dbPath?: string;
   projectRoot?: string;
   webRoot?: string;
+  /** Root directory for feed client build (served at /) */
+  feedRoot?: string;
+  /** Port of the feed backend server for API proxying */
+  feedPort?: number;
   corsOrigins?: string[];
 }
 
@@ -169,8 +174,19 @@ export async function startSmithyServer(options: SmithyServerOptions = {}): Prom
   await lspManager.checkAvailability();
   app.route('/', createLspRoutes(lspManager));
 
-  // Serve pre-built web UI if webRoot is provided and exists
+  // Register feed API proxy routes (proxies /feed-api/* to the feed server)
+  app.route('/', createFeedProxyRoutes(options.feedPort));
+
+  // Serve dashboard (smithy-web) at /dashboard if webRoot is provided
   if (options.webRoot) {
+    registerDashboardMiddleware(app, options.webRoot);
+  }
+
+  // Serve feed client at root (/) if feedRoot is provided
+  // Falls back to smithy-web at root if no feedRoot
+  if (options.feedRoot) {
+    registerStaticMiddleware(app, options.feedRoot);
+  } else if (options.webRoot) {
     registerStaticMiddleware(app, options.webRoot);
   }
 

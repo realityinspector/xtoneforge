@@ -9,6 +9,7 @@ const __dirname = dirname(__filename);
 const apiPort = process.env.VITE_API_PORT || '3457';
 
 export default defineConfig({
+  base: '/dashboard/',
   plugins: [react()],
   test: {
     // Exclude Playwright E2E tests from Vitest unit test runs

@@ -3,6 +3,7 @@
  */
 
 import { CheckCircle, GitMerge, Clock, ArrowRight } from 'lucide-react';
+import { Link } from '@tanstack/react-router';
 import { useTasksByStatus } from '../../api/hooks/useTasks.js';
 import { useAgentsByRole } from '../../api/hooks/useAgents.js';
 import { formatRelativeTime } from '../../api/hooks/useActivity.js';
@@ -59,13 +60,14 @@ export function RecentCompletions() {
           <Clock className="w-3.5 h-3.5" />
           Recent Completions
         </h2>
-        <a
-          href="/tasks?status=closed"
+        <Link
+          to="/tasks"
+          search={{ status: 'closed' }}
           className="text-xs text-[var(--color-primary)] hover:underline flex items-center gap-1"
         >
           View all
           <ArrowRight className="w-3 h-3" />
-        </a>
+        </Link>
       </div>
 
       <div className="space-y-1">

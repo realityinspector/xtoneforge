@@ -23,6 +23,7 @@ const __dirname = dirname(__filename);
 (globalThis as Record<string, unknown>).__stoneforge_smithy = {
   loadServer: () => import('../server/index.js'),
   webRoot: resolve(__dirname, '../../web'),
+  feedRoot: resolve(__dirname, '../../feed-web'),
   cliPlugin,
 };
 

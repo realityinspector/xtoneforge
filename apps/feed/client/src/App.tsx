@@ -47,8 +47,12 @@ if (TOKEN && window.location.search.includes("token=")) {
 const headers: Record<string, string> = { "Content-Type": "application/json" };
 if (TOKEN) headers["Authorization"] = `Bearer ${TOKEN}`;
 
+// Use /feed-api prefix when served through the smithy server (integrated mode),
+// fall back to /api when running standalone on the feed server.
+const API_BASE = window.location.port === "5173" || window.location.port === "8080" ? "/api" : "/feed-api";
+
 async function api(path: string, opts?: RequestInit) {
-  const res = await fetch(`/api${path}`, {
+  const res = await fetch(`${API_BASE}${path}`, {
     ...opts,
     headers: { ...headers, ...opts?.headers },
     credentials: "same-origin", // send cookies
@@ -318,7 +322,7 @@ function LoginGate({ onSuccess }: { onSuccess: () => void }) {
     if (!password.trim()) return;
     setLoading(true);
     setError("");
-    const res = await fetch("/api/auth/login", {
+    const res = await fetch(`${API_BASE}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "same-origin",
@@ -383,7 +387,10 @@ export function App() {
   // WebSocket for real-time updates — cookie auth, no token in URL
   useEffect(() => {
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    // When running through smithy server (integrated mode), connect to feed server directly
+    const isStandalone = window.location.port === "5173" || window.location.port === "8080";
+    const feedWsHost = isStandalone ? window.location.host : `${window.location.hostname}:8080`;
+    const wsUrl = `${protocol}//${feedWsHost}/ws`;
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
@@ -476,7 +483,10 @@ export function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1><span style={{ color: "#7C3AED", fontWeight: 800 }}>X</span>TONEFORGE</h1>
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <h1><span style={{ color: "#7C3AED", fontWeight: 800 }}>X</span>TONEFORGE</h1>
+          <a href="/dashboard" style={{ fontSize: "12px", color: "#7C3AED", textDecoration: "none", opacity: 0.8, fontWeight: 600 }}>Dashboard →</a>
+        </div>
         <div className="agent-tabs">
           <button
             className={!filterAgent && !filterCrossTalk ? "active" : ""}

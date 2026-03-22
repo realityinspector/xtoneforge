@@ -262,7 +262,8 @@ const routeTree = rootRoute.addChildren([
 ]);
 
 // Create and export the router
-export const router = createRouter({ routeTree });
+// Dashboard is served at /dashboard, so set basepath accordingly
+export const router = createRouter({ routeTree, basepath: '/dashboard' });
 
 // Type declaration for router
 declare module '@tanstack/react-router' {

@@ -29,10 +29,29 @@ function quarryWebRoot(): string | undefined {
 interface SmithyRegistration {
   loadServer: () => Promise<{ startSmithyServer: (opts: Record<string, unknown>) => Promise<unknown> }>;
   webRoot: string;
+  feedRoot?: string;
 }
 
 function getSmithyRegistration(): SmithyRegistration | undefined {
   return (globalThis as Record<string, unknown>).__stoneforge_smithy as SmithyRegistration | undefined;
+}
+
+function smithyFeedRoot(): string | undefined {
+  // Check pre-registered path from smithy's sf.js entry point
+  const reg = getSmithyRegistration();
+  if (reg?.feedRoot && existsSync(reg.feedRoot)) return reg.feedRoot;
+
+  try {
+    const smithyUrl = import.meta.resolve('@stoneforge/smithy');
+    const smithyPath = fileURLToPath(smithyUrl);
+    const feedRoot = resolve(dirname(smithyPath), '../feed-web');
+    if (existsSync(feedRoot)) return feedRoot;
+    const feedRoot2 = resolve(dirname(smithyPath), '../../feed-web');
+    if (existsSync(feedRoot2)) return feedRoot2;
+  } catch {
+    // smithy not installed and not pre-registered
+  }
+  return undefined;
 }
 
 function smithyWebRoot(): string | undefined {
@@ -98,11 +117,15 @@ async function startSmithy(options: GlobalOptions): Promise<CommandResult> {
   const port = options.port ? parseInt(String(options.port), 10) : 3457;
   const host = options.host ? String(options.host) : 'localhost';
 
+  // Look for pre-built feed client assets
+  const feedRoot = reg?.feedRoot && existsSync(reg.feedRoot) ? reg.feedRoot : smithyFeedRoot();
+
   const result = await startSmithyServer({
     port,
     host,
     dbPath: options.db ? String(options.db) : undefined,
     webRoot: smithyWebRoot(),
+    feedRoot,
   });
 
   const actualPort = (result && typeof result === 'object' && 'port' in result) ? (result as { port: number }).port : port;
