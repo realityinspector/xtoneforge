@@ -107,8 +107,8 @@ export interface SidebarProps {
 
 // Default branding
 const DEFAULT_BRANDING: SidebarBranding = {
-  logoText: 'E',
-  appName: 'Stoneforge',
+  logoText: 'X',
+  appName: 'XTONEFORGE',
   logoGradient: 'from-[var(--color-primary)] to-[var(--color-accent-500)]',
 };
 
