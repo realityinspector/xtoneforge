@@ -22,6 +22,7 @@ import {
   FileText,
   FileCode,
   GitMerge,
+  Rss,
   type LucideIcon,
 } from 'lucide-react';
 import { useShortcutVersion, Tooltip } from '@stoneforge/ui';
@@ -240,12 +241,12 @@ export function Sidebar({ collapsed = false, onToggle, isMobileDrawer = false }:
       <div className={`flex items-center justify-between h-14 px-4 border-b border-[var(--color-sidebar-border)] ${isMobileDrawer ? 'pr-12' : ''}`}>
         {showExpandedState && (
           <div className="flex items-center gap-2.5 ml-1">
-            <img src="/logo.png" alt="" className="w-7 h-7 object-contain" />
+            <img src={`${import.meta.env.BASE_URL}logo.png`} alt="" className="w-7 h-7 object-contain" />
             <span className="text-xl font-semibold tracking-wide text-[var(--color-text)]" style={{ fontFamily: "'Space Grotesk', ui-sans-serif, system-ui, sans-serif" }}>stoneforge</span>
           </div>
         )}
         {showCollapsedState && (
-          <img src="/logo.png" alt="Stoneforge" className="w-7 h-7 object-contain mx-auto" />
+          <img src={`${import.meta.env.BASE_URL}logo.png`} alt="Stoneforge" className="w-7 h-7 object-contain mx-auto" />
         )}
         {showExpandedState && !isMobileDrawer && (
           <button
@@ -258,6 +259,23 @@ export function Sidebar({ collapsed = false, onToggle, isMobileDrawer = false }:
             <ChevronLeft className="w-4 h-4" />
           </button>
         )}
+      </div>
+
+      {/* Feed Link - back to the primary feed interface */}
+      <div className={`px-2 pt-3 ${collapsed ? '' : ''}`}>
+        <a
+          href="/"
+          className={`
+            group relative flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-md
+            transition-all duration-150 ease-out
+            text-[var(--color-primary)] hover:bg-[var(--color-sidebar-item-hover)]
+            ${collapsed ? 'justify-center px-2' : ''}
+          `}
+          title={collapsed ? 'Feed' : undefined}
+        >
+          <Rss className="w-4 h-4 flex-shrink-0" />
+          {!collapsed && <span className="flex-1 truncate">Feed</span>}
+        </a>
       </div>
 
       {/* Main Navigation */}

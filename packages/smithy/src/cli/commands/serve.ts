@@ -30,11 +30,16 @@ export const serveSmithyCommand = {
       const webRoot = resolve(__dirname, '../../../web');
       const hasWebAssets = existsSync(webRoot);
 
+      // Look for pre-built feed client assets
+      const feedRoot = resolve(__dirname, '../../../feed-web');
+      const hasFeedAssets = existsSync(feedRoot);
+
       const { port: actualPort } = await startSmithyServer({
         port,
         host,
         dbPath: options.db ? String(options.db) : undefined,
         webRoot: hasWebAssets ? webRoot : undefined,
+        feedRoot: hasFeedAssets ? feedRoot : undefined,
       });
 
       console.log(`[orchestrator] Smithy server running at http://${host}:${actualPort}`);

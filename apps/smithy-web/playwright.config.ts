@@ -21,7 +21,7 @@ export default defineConfig({
   globalSetup: './tests/global-setup.ts',
   globalTeardown: './tests/global-teardown.ts',
   use: {
-    baseURL: `http://localhost:${testWebPort}`,
+    baseURL: `http://localhost:${testWebPort}/dashboard`,
     trace: 'on-first-retry',
   },
   projects: [
