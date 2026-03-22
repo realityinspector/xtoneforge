@@ -2,7 +2,38 @@
 
 Multi-workspace manager for Stoneforge. Starts, stops, monitors, and manages port conflicts across multiple Stoneforge workspaces, plus the Feed social UI and sync service.
 
-## Quick Start
+## Turnkey Setup with `xtoneforge`
+
+The fastest way to get a Stoneforge workspace running from a fresh clone:
+
+```bash
+git clone https://github.com/your-org/your-repo.git
+cd your-repo
+./tools/boss/xtoneforge init
+```
+
+This single command will:
+1. Install dependencies (`pnpm install`)
+2. Initialize `.stoneforge/` with cross_messaging enabled
+3. Register the workspace with stoneforge-boss
+4. Start all services (broker, workspace, feed)
+5. Open the feed UI in your browser
+
+Options:
+```bash
+# Custom workspace name and review preset
+./tools/boss/xtoneforge init my-project review
+
+# Skip opening browser
+XTONEFORGE_SKIP_OPEN=true ./tools/boss/xtoneforge init
+
+# Other xtoneforge commands
+./tools/boss/xtoneforge status    # Show service status
+./tools/boss/xtoneforge start     # Start all services
+./tools/boss/xtoneforge stop      # Stop all services
+```
+
+## Manual Quick Start
 
 ```bash
 # Initialize config

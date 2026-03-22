@@ -1,0 +1,316 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ============================================================================
+# xtoneforge — Turnkey init for Stoneforge workspaces
+#
+# One command from clone to running:
+#   ./tools/boss/xtoneforge init
+#
+# Steps:
+#   1. pnpm install
+#   2. sf init (creates .stoneforge/ with cross_messaging enabled)
+#   3. Register workspace with stoneforge-boss
+#   4. Start broker + workspace + feed
+#   5. Open browser to feed URL
+# ============================================================================
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+BOSS_SCRIPT="$SCRIPT_DIR/stoneforge-boss.sh"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+DIM='\033[2m'
+NC='\033[0m'
+
+# ---- Helpers ----
+
+step() {
+  local num="$1" msg="$2"
+  echo ""
+  echo -e "  ${BOLD}[${num}/5]${NC} ${msg}"
+  echo ""
+}
+
+success() {
+  echo -e "  ${GREEN}✔${NC} $1"
+}
+
+warn() {
+  echo -e "  ${YELLOW}⚠${NC} $1"
+}
+
+fail() {
+  echo -e "  ${RED}✘${NC} $1" >&2
+  exit 1
+}
+
+# ---- Preflight Checks ----
+
+check_prerequisites() {
+  local missing=()
+
+  if ! command -v node >/dev/null 2>&1; then
+    missing+=("node (>= 18)")
+  fi
+
+  if ! command -v pnpm >/dev/null 2>&1; then
+    missing+=("pnpm (>= 8)")
+  fi
+
+  if ! command -v sf >/dev/null 2>&1; then
+    missing+=("sf (stoneforge CLI)")
+  fi
+
+  if [ ${#missing[@]} -gt 0 ]; then
+    echo -e "${RED}Missing prerequisites:${NC}"
+    for dep in "${missing[@]}"; do
+      echo "  - $dep"
+    done
+    echo ""
+    echo "Install missing tools and try again."
+    exit 1
+  fi
+}
+
+# ---- Commands ----
+
+cmd_init() {
+  local workspace_name="${1:-}"
+  local preset="${2:-auto}"
+  local skip_open="${XTONEFORGE_SKIP_OPEN:-false}"
+
+  echo ""
+  echo -e "${BOLD}  ╔═══════════════════════════════════════════════════╗${NC}"
+  echo -e "${BOLD}  ║          XTONEFORGE — Turnkey Init               ║${NC}"
+  echo -e "${BOLD}  ╚═══════════════════════════════════════════════════╝${NC}"
+  echo ""
+
+  check_prerequisites
+
+  # Auto-detect workspace name from directory or package.json
+  if [ -z "$workspace_name" ]; then
+    if [ -f "$REPO_ROOT/package.json" ]; then
+      workspace_name="$(node -e "try{console.log(require('$REPO_ROOT/package.json').name||'')}catch(e){console.log('')}" 2>/dev/null)" || true
+    fi
+    if [ -z "$workspace_name" ]; then
+      workspace_name="$(basename "$REPO_ROOT")"
+    fi
+  fi
+
+  echo -e "  ${DIM}Workspace:${NC} ${CYAN}${workspace_name}${NC}"
+  echo -e "  ${DIM}Root:${NC}      ${CYAN}${REPO_ROOT}${NC}"
+  echo -e "  ${DIM}Preset:${NC}    ${CYAN}${preset}${NC}"
+
+  # ---- Step 1: pnpm install ----
+  step 1 "Installing dependencies (pnpm install)"
+
+  cd "$REPO_ROOT"
+
+  if [ -d "node_modules" ] && [ -f "pnpm-lock.yaml" ]; then
+    # Quick check: if node_modules exists and lock hasn't changed, skip
+    warn "node_modules exists — running pnpm install to ensure consistency"
+  fi
+
+  if pnpm install --frozen-lockfile 2>/dev/null; then
+    success "Dependencies installed (frozen lockfile)"
+  elif pnpm install; then
+    success "Dependencies installed"
+  else
+    fail "pnpm install failed. Check errors above."
+  fi
+
+  # ---- Step 2: sf init ----
+  step 2 "Initializing Stoneforge workspace (.stoneforge/)"
+
+  if [ -d "$REPO_ROOT/.stoneforge" ] && [ -f "$REPO_ROOT/.stoneforge/stoneforge.db" ]; then
+    warn "Workspace already initialized — running sf init to ensure consistency"
+  fi
+
+  sf init --name "$workspace_name" --preset "$preset"
+  success "Stoneforge workspace initialized"
+
+  # Enable cross_messaging if not already enabled
+  local config_file="$REPO_ROOT/.stoneforge/config.yaml"
+  if [ -f "$config_file" ]; then
+    if ! grep -q "cross_messaging:" "$config_file"; then
+      # Append cross_messaging config
+      cat >> "$config_file" <<'YAML'
+cross_messaging:
+  enabled: true
+YAML
+      success "cross_messaging enabled"
+    elif grep -q "enabled: false" "$config_file" 2>/dev/null; then
+      # Replace false with true (macOS-compatible sed)
+      local tmp_config
+      tmp_config=$(mktemp)
+      sed 's/enabled: false/enabled: true/' "$config_file" > "$tmp_config"
+      mv "$tmp_config" "$config_file"
+      success "cross_messaging enabled (was disabled)"
+    else
+      success "cross_messaging already enabled"
+    fi
+  fi
+
+  # ---- Step 3: Register with boss ----
+  step 3 "Registering workspace with stoneforge-boss"
+
+  # Initialize boss config if needed
+  "$BOSS_SCRIPT" init
+
+  # Find or create a workspace start script
+  local ws_port=3457
+  local ws_start_script=""
+
+  # Check for common start scripts
+  for candidate in \
+    "$REPO_ROOT/scripts/start-sf.sh" \
+    "$REPO_ROOT/scripts/start-workspace.sh" \
+    "$REPO_ROOT/start-sf.sh"; do
+    if [ -x "$candidate" ]; then
+      ws_start_script="$candidate"
+      break
+    fi
+  done
+
+  # If no start script found, create a generic one
+  if [ -z "$ws_start_script" ]; then
+    ws_start_script="$REPO_ROOT/scripts/start-sf-${workspace_name}.sh"
+    mkdir -p "$REPO_ROOT/scripts"
+
+    cat > "$ws_start_script" <<SCRIPT
+#!/usr/bin/env bash
+# Auto-generated by xtoneforge init
+# Start the Stoneforge workspace server
+set -euo pipefail
+
+REPO_ROOT="$REPO_ROOT"
+cd "\$REPO_ROOT"
+
+PORT="\${1:-$ws_port}"
+# Handle --port flag
+if [ "\${1:-}" = "--port" ]; then
+  PORT="\${2:-$ws_port}"
+fi
+
+exec sf serve --port "\$PORT"
+SCRIPT
+    chmod +x "$ws_start_script"
+    success "Created workspace start script: $ws_start_script"
+  fi
+
+  # Register with boss
+  "$BOSS_SCRIPT" register "$workspace_name" "$ws_start_script" "$ws_port"
+  success "Registered '$workspace_name' with stoneforge-boss"
+
+  # ---- Step 4: Start broker + workspace + feed ----
+  step 4 "Starting services (broker, workspace, feed)"
+
+  "$BOSS_SCRIPT" start all
+  success "All services started"
+
+  # ---- Step 5: Open browser ----
+  step 5 "Opening feed in browser"
+
+  local feed_port=""
+  # Read feed port from boss state file
+  local state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/stoneforge-boss"
+  if [ -f "$state_dir/feed.port" ]; then
+    feed_port=$(cat "$state_dir/feed.port")
+  fi
+  if [ -z "$feed_port" ]; then
+    feed_port=8080
+  fi
+
+  local feed_url="http://localhost:${feed_port}"
+
+  if [ "$skip_open" = "true" ]; then
+    warn "Skipping browser open (XTONEFORGE_SKIP_OPEN=true)"
+  else
+    if command -v open >/dev/null 2>&1; then
+      open "$feed_url" 2>/dev/null || true
+    elif command -v xdg-open >/dev/null 2>&1; then
+      xdg-open "$feed_url" 2>/dev/null || true
+    else
+      warn "Could not detect browser. Open manually: $feed_url"
+    fi
+  fi
+
+  # ---- Done ----
+  echo ""
+  echo -e "${BOLD}  ╔═══════════════════════════════════════════════════╗${NC}"
+  echo -e "${BOLD}  ║          XTONEFORGE — Ready!                     ║${NC}"
+  echo -e "${BOLD}  ╚═══════════════════════════════════════════════════╝${NC}"
+  echo ""
+  echo -e "  ${GREEN}Feed:${NC}        ${CYAN}${feed_url}${NC}"
+  echo -e "  ${GREEN}Workspace:${NC}   ${CYAN}${workspace_name}${NC}"
+  echo -e "  ${GREEN}Config:${NC}      ${CYAN}${REPO_ROOT}/.stoneforge/config.yaml${NC}"
+  echo ""
+  echo -e "  ${DIM}Useful commands:${NC}"
+  echo -e "    ${BOLD}stoneforge-boss status${NC}    — Check running services"
+  echo -e "    ${BOLD}stoneforge-boss stop${NC}      — Stop all services"
+  echo -e "    ${BOLD}stoneforge-boss dashboard${NC} — Live monitoring"
+  echo -e "    ${BOLD}sf task list${NC}              — View workspace tasks"
+  echo ""
+}
+
+cmd_status() {
+  "$BOSS_SCRIPT" status
+}
+
+cmd_stop() {
+  "$BOSS_SCRIPT" stop all
+}
+
+cmd_start() {
+  "$BOSS_SCRIPT" start all
+}
+
+cmd_help() {
+  echo ""
+  echo -e "${BOLD}xtoneforge${NC} — Turnkey Stoneforge workspace setup"
+  echo ""
+  echo "Usage:"
+  echo "  xtoneforge init [name] [preset]   One-command setup from clone to running"
+  echo "  xtoneforge status                  Show workspace and service status"
+  echo "  xtoneforge start                   Start all services"
+  echo "  xtoneforge stop                    Stop all services"
+  echo "  xtoneforge help                    Show this help"
+  echo ""
+  echo "Init options:"
+  echo "  name      Workspace name (auto-detected from package.json or directory)"
+  echo "  preset    Workflow preset: auto (default), review, approve"
+  echo ""
+  echo "Environment variables:"
+  echo "  XTONEFORGE_SKIP_OPEN=true   Skip opening browser after init"
+  echo ""
+  echo "Examples:"
+  echo "  # From a fresh clone:"
+  echo "  git clone https://github.com/your-org/your-repo.git"
+  echo "  cd your-repo"
+  echo "  ./tools/boss/xtoneforge init"
+  echo ""
+  echo "  # With custom name and review preset:"
+  echo "  ./tools/boss/xtoneforge init my-project review"
+  echo ""
+}
+
+# ---- Main ----
+
+case "${1:-help}" in
+  init)    cmd_init "${2:-}" "${3:-auto}" ;;
+  status)  cmd_status ;;
+  start)   cmd_start ;;
+  stop)    cmd_stop ;;
+  help|--help|-h) cmd_help ;;
+  *)
+    echo "Unknown command: $1"
+    cmd_help
+    exit 1
+    ;;
+esac
